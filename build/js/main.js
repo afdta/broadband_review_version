@@ -32,12 +32,12 @@ function main(){
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
-    /*var subscription_map_wrap = wrap.append("div");
+    var subscription_map_wrap = wrap.append("div");
     subscription_map_wrap.append("h3").text("Subscription metro bubble map");
     subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
 
-    var tract_map_wrap = wrap.append("div");
+    /*var tract_map_wrap = wrap.append("div");
     tract_map_wrap.append("h3").text("Subscription tract map");
     tract_maps(tract_map_wrap.node());*/
 
