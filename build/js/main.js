@@ -29,7 +29,7 @@ function main(){
 
     var access_map_wrap = wrap.append("div");
     access_map_wrap.append("h3").text("Broadband access metro bubble map");
-    access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map");
+    access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
     var subscription_map_wrap = wrap.append("div");
