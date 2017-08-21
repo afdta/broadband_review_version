@@ -1235,6 +1235,41 @@ function mapd(container){
 //to do: transfer geojson to data folder in project
 
 //import metro_select from "../../../js-modules/metro-select.js";
+function subscription_bubble_map(container){
+
+	var wrap = d3.select(container);
+	//var select = wrap.append("div");
+	var map_wrap = wrap.append("div").style("padding","10px").append("div")
+                       .style("min-height","400px")
+                       .style("height","85vh");
+
+	var map = mapd(map_wrap.node());
+	//var alldata;
+
+	d3.json("./data/metro_adoption.json", function(error, data){
+		//map.data(data, "tract");
+		//alldata = data;
+
+		if(error){
+			return null;
+		}
+
+		var stategeo = map.geo("state");
+		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+
+		var state_layer = map.layer().geo(stategeo);
+		var projection = d3.geoAlbersUsa();
+		map.projection(projection, state_layer);
+
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").set_aes();
+
+		metro_layer.aes.fill("pcat_10x1_5");
+
+		map.draw();
+
+	});
+
+}
 
 //to do: transfer geojson to data folder in project
 
@@ -1304,12 +1339,12 @@ function main(){
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
-    /*var subscription_map_wrap = wrap.append("div");
+    var subscription_map_wrap = wrap.append("div");
     subscription_map_wrap.append("h3").text("Subscription metro bubble map");
     subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
 
-    var tract_map_wrap = wrap.append("div");
+    /*var tract_map_wrap = wrap.append("div");
     tract_map_wrap.append("h3").text("Subscription tract map");
     tract_maps(tract_map_wrap.node());*/
 
