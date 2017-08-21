@@ -1,6 +1,7 @@
 import dir from "../../../js-modules/rackspace.js";
-import tract_maps from "./tract_maps"
-
+import tract_maps from "./tract_maps.js"
+import subscription_bubble_map from "./subscription_bubble_map.js";
+import access_bubble_map from "./access_bubble_map.js";
 
 //main function
 function main(){
@@ -26,8 +27,18 @@ function main(){
   else{
     var wrap = d3.select("#metro-interactive");
 
-    var tract_map_wrap = wrap.append("div");
+    var access_map_wrap = wrap.append("div");
+    access_map_wrap.append("h3").text("Broadband access metro bubble map");
+    access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map");
+    access_bubble_map(access_map_wrap.node());
 
+    var subscription_map_wrap = wrap.append("div");
+    subscription_map_wrap.append("h3").text("Subscription metro bubble map");
+    subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
+    subscription_bubble_map(subscription_map_wrap.node());
+
+    var tract_map_wrap = wrap.append("div");
+    tract_map_wrap.append("h3").text("Subscription tract map");
     tract_maps(tract_map_wrap.node());
 
   }
