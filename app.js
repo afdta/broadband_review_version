@@ -1049,6 +1049,8 @@ function layer(){
 		var proj = map.projection();
 		var path = d3.geoPath().projection(proj);
 
+		console.log("DRAW");
+
 		if(is_points){
 			var i = -1;
 			while(++i < geodata.length){
