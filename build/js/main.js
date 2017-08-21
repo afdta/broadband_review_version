@@ -1,4 +1,5 @@
 import dir from "../../../js-modules/rackspace.js";
+import tract_maps from "./tract_maps"
 
 
 //main function
@@ -23,7 +24,12 @@ function main(){
       return null;
   }
   else{
-    //run app...
+    var wrap = d3.select("#metro-interactive");
+
+    var tract_map_wrap = wrap.append("div");
+
+    tract_maps(tract_map_wrap.node());
+
   }
 
 

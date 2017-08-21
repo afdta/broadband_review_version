@@ -1,0 +1,36 @@
+Wireframe
+
+I'd like to walk through the wireframe and test it against some high-level objectives:
+
+1) Does it make all the key points?
+
+2) Is the logic flow effective or persuasive?
+
+3) Think about timeline. 
+   Can we squeeze water in August, push broadband later into early September?
+
+What should the process be for this over the next few weeks - Elizabeth
+Realistic about the date
+
+Julia comments
+
+Is availability section too robust -- remove map...
+
+Don't even worry about it... if you're not in rural america, don't even worry about...
+
+Income and education are the primary correlates... Do we say that this isn't really about race. Make a little more prominent. Pop-up about race... link to methodological appendix.
+
+Collapse the city v suburb chart into the map -- leaning in favor of not using the city v suburb chart. Add option to scale dots.
+
+Get the combined ranks somewhere in there... Figure out where... overlay on maps 
+
+local, state, federal buckets
+
+schedule next week
+
+
+
+
+
+
+
