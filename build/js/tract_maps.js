@@ -19,7 +19,7 @@ export default function tract_maps(container){
 			map_tract(cache[cbsa]);
 		}
 		else{
-			var uri = "../js-modules/maps/build/data/geo/tract/2014/final/"+cbsa+".json";
+			var uri = "./data/tract_json/"+cbsa+".json";
 			//console.log(uri);
 			d3.json(uri, function(error, topo){
 				if (error) throw error;
