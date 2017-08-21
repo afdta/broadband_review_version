@@ -1429,10 +1429,10 @@ function tract_maps(container){
                        .style("min-height","400px")
                        .style("height","85vh");
 
-	var cache = {};
+	var geoCache = {};
 	function get_and_map(cbsa){
-		if(cache.hasOwnProperty(cbsa)){
-			map_tract(cache[cbsa]);
+		if(geoCache.hasOwnProperty(cbsa)){
+			map_tract(geoCache[cbsa]);
 		}
 		else{
 			var uri = "./data/tract_json/"+cbsa+".json";
@@ -1443,7 +1443,7 @@ function tract_maps(container){
 				var geoj = topojson.feature(topo, topo.objects.tracts);
 				geoj.bbox = topojson.bbox(topo);
 
-				cache[cbsa] = geoj; //cache it
+				geoCache[cbsa] = geoj; //cache it
 
 				map_tract(geoj);		
 			});
