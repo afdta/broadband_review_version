@@ -865,9 +865,8 @@ function layer(){
 		var num_dupes = 0;
 
 		//de-duped data -- keep only first obs encountered for a geo
-		var i = -1;
-		while(++i < array.length){
-			var d = array[i];
+		array.forEach(function(d,i){
+			
 			var id = get_geo_id(d);
 
 			if(lookup.hasOwnProperty(id)){
@@ -879,7 +878,7 @@ function layer(){
 				lookup[id] = d;
 				de_duped.push(d);
 			}
-		}
+		});
 
 		if(num_dupes > 0){
 			var warning = {
@@ -1461,11 +1460,13 @@ function tract_maps(container){
 		var tract_layer = map.layer().geo(geoj);
 
 		if(!!alldata){
-			tract_layer.data(alldata, "tract").set_aes();
+			tract_layer.data(alldata, "tr").set_aes();
 			//var cols = ['#ffffff','#d7301f','#ef6548','#7fcdbb','#1d91c0','#0c2c84'];
 			var cols = ['#efefef','#cb181d','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			//var cat_scale = tract_layer.aes.fillcat("pcat_10x1").levels(["0","1","2","3","4","5"], cols);
+			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 			//console.log(cat_scale);
+
+			console.log(tract_layer.warnings());
 		}
 
 		var projection = tract_layer.get_albers();
@@ -1475,34 +1476,97 @@ function tract_maps(container){
 		map.draw();
 	}	
 
-		metro_select().setup(select.node()).onchange(function(cbsa){
-			//console.log(this);
-			get_and_map(cbsa.CBSA_Code);
-		});
-
-		get_and_map("10420");	
-
-	/*d3.csv("./data/tract_data.csv", function(error, data){
+	d3.json("./data/tract_data.json", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
-
+		console.log(data);
 		metro_select().setup(select.node()).onchange(function(cbsa){
 			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
 		});
 
 		get_and_map("10420");
-	})*/
+	});
 
 }
 
 //to do: transfer geojson to data folder in project
 
 //import metro_select from "../../../js-modules/metro-select.js";
+function subscription_bubble_map(container){
+
+	var wrap = d3.select(container);
+	//var select = wrap.append("div");
+	var map_wrap = wrap.append("div").style("padding","10px").append("div")
+                       .style("min-height","400px")
+                       .style("height","85vh");
+
+	var map = mapd(map_wrap.node());
+	//var alldata;
+
+	d3.json("./data/metro_adoption.json", function(error, data){
+		//map.data(data, "tract");
+		//alldata = data;
+
+		if(error){
+			return null;
+		}
+
+		var stategeo = map.geo("state");
+		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+
+		var state_layer = map.layer().geo(stategeo);
+		var projection = d3.geoAlbersUsa();
+		map.projection(projection, state_layer);
+
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").set_aes();
+
+		metro_layer.aes.fill("pcat_10x1_5");
+
+		map.draw();
+
+	});
+
+}
 
 //to do: transfer geojson to data folder in project
 
 //import metro_select from "../../../js-modules/metro-select.js";
+function access_bubble_map(container){
+
+	var wrap = d3.select(container);
+	//var select = wrap.append("div");
+	var map_wrap = wrap.append("div").style("padding","10px").append("div")
+                       .style("min-height","400px")
+                       .style("height","85vh");
+
+	var map = mapd(map_wrap.node());
+	//var alldata;
+
+	d3.json("./data/metro_access.json", function(error, data){
+		//map.data(data, "tract");
+		//alldata = data;
+
+		if(error){
+			return null;
+		}
+
+		var stategeo = map.geo("state");
+		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+
+		var state_layer = map.layer().geo(stategeo);
+		var projection = d3.geoAlbersUsa();
+		map.projection(projection, state_layer);
+
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").set_aes();
+
+		metro_layer.aes.fill("share_access");
+
+		map.draw();
+
+	});
+
+}
 
 //main function
 function main(){
@@ -1528,7 +1592,7 @@ function main(){
   else{
     var wrap = d3.select("#metro-interactive");
 
-    /*var access_map_wrap = wrap.append("div");
+    var access_map_wrap = wrap.append("div");
     access_map_wrap.append("h3").text("Broadband access metro bubble map");
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
@@ -1537,7 +1601,7 @@ function main(){
     subscription_map_wrap.append("h3").text("Subscription metro bubble map");
     subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
-*/
+
     var tract_map_wrap = wrap.append("div");
     tract_map_wrap.append("h3").text("Subscription tract map");
     tract_maps(tract_map_wrap.node());

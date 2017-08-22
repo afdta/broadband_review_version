@@ -43,11 +43,13 @@ export default function tract_maps(container){
 		var tract_layer = map.layer().geo(geoj);
 
 		if(!!alldata){
-			tract_layer.data(alldata, "tract").set_aes();
+			tract_layer.data(alldata, "tr").set_aes();
 			//var cols = ['#ffffff','#d7301f','#ef6548','#7fcdbb','#1d91c0','#0c2c84'];
 			var cols = ['#efefef','#cb181d','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			//var cat_scale = tract_layer.aes.fillcat("pcat_10x1").levels(["0","1","2","3","4","5"], cols);
+			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 			//console.log(cat_scale);
+
+			console.log(tract_layer.warnings());
 		}
 
 		var projection = tract_layer.get_albers();
@@ -57,23 +59,16 @@ export default function tract_maps(container){
 		map.draw();
 	};	
 
-		metro_select().setup(select.node()).onchange(function(cbsa){
-			//console.log(this);
-			get_and_map(cbsa.CBSA_Code);
-		});
-
-		get_and_map("10420");	
-
-	/*d3.csv("./data/tract_data.csv", function(error, data){
+	d3.json("./data/tract_data.json", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
-
+		console.log(data);
 		metro_select().setup(select.node()).onchange(function(cbsa){
 			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
 		});
 
 		get_and_map("10420");
-	})*/
+	})
 
 }

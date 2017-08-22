@@ -8,13 +8,17 @@ data$atl3 <- substring(data$atl3,1,1)
 data$atl10 <- substring(data$atl10,1,1)
 data$atl25 <- substring(data$atl25,1,1)
 data$above1g <- substring(data$above1g,1,1)
+data$pov <- data$inpov/data$povuniv
+data$ba <- data$baplus_1115/data$edattain_univ_1115
 
 data$access <- ifelse(data$atl25=="N", 0, data$pop_1115)
 
 data100 <- limit100(data, "cbsa")
+data100 <- data100[c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
+names(data100) <- c("tr","pl","av","su","pop","ba","pov","ki")
 
 #write out subset
-write.csv(data100[,c("tract","atl3","atl10","atl25","above1g","pop_1115","pcat_10x1","baplus_1115","povuniv","inpov","inc_cat")], 
+write.csv(data100[,], 
           file="/home/alec/Projects/Brookings/broadband/data/tract_data.csv", row.names=FALSE, na="")
 
 #summarize metro share of pop with 25MBPS 
