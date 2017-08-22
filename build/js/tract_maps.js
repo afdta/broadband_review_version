@@ -46,7 +46,7 @@ export default function tract_maps(container){
 			tract_layer.data(alldata, "tract").set_aes();
 			//var cols = ['#ffffff','#d7301f','#ef6548','#7fcdbb','#1d91c0','#0c2c84'];
 			var cols = ['#efefef','#cb181d','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			var cat_scale = tract_layer.aes.fillcat("pcat_10x1").levels(["0","1","2","3","4","5"], cols);
+			//var cat_scale = tract_layer.aes.fillcat("pcat_10x1").levels(["0","1","2","3","4","5"], cols);
 			//console.log(cat_scale);
 		}
 
