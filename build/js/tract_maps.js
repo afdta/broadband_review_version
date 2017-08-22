@@ -57,6 +57,13 @@ export default function tract_maps(container){
 		map.draw();
 	};	
 
+		metro_select().setup(select.node()).onchange(function(cbsa){
+			//console.log(this);
+			get_and_map(cbsa.CBSA_Code);
+		});
+
+		get_and_map("10420");	
+
 	/*d3.csv("./data/tract_data.csv", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
