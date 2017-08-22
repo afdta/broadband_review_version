@@ -865,7 +865,9 @@ function layer(){
 		var num_dupes = 0;
 
 		//de-duped data -- keep only first obs encountered for a geo
-		array.forEach(function(d,i,a){
+		var i = -1;
+		while(++i < array.length){
+			var d = array[i];
 			var id = get_geo_id(d);
 
 			if(lookup.hasOwnProperty(id)){
@@ -877,7 +879,7 @@ function layer(){
 				lookup[id] = d;
 				de_duped.push(d);
 			}
-		});
+		}
 
 		if(num_dupes > 0){
 			var warning = {
