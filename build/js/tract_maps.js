@@ -57,7 +57,7 @@ export default function tract_maps(container){
 		map.draw();
 	};	
 
-	d3.csv("./data/tract_data.csv", function(error, data){
+	/*d3.csv("./data/tract_data.csv", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
 
@@ -67,6 +67,6 @@ export default function tract_maps(container){
 		});
 
 		get_and_map("10420");
-	})
+	})*/
 
 }
