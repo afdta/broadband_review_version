@@ -2,6 +2,7 @@
 
 library(tidyverse)
 library(metromonitor)
+library(jsonlite)
 
 data <- read_csv("/home/alec/Projects/Brookings/broadband/build/data/Masterfile.txt")
 data$atl3 <- substring(data$atl3,1,1)
@@ -18,8 +19,13 @@ data100 <- data100[c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov
 names(data100) <- c("tr","pl","av","su","pop","ba","pov","ki")
 
 #write out subset
-write.csv(data100[,], 
-          file="/home/alec/Projects/Brookings/broadband/data/tract_data.csv", row.names=FALSE, na="")
+writeLines(toJSON(data100, factor="string", na="null", digits=5), 
+           con="/home/alec/Projects/Brookings/broadband/data/tract_data.json")
+
+#write out Akron
+akronchi <- data[data$cbsa %in% c("10420","16980"), c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
+writeLines(toJSON(akronchi, factor="string", na="null", digits=5), 
+           con="/home/alec/Projects/Brookings/broadband/data/akron_chicago.json")
 
 #summarize metro share of pop with 25MBPS 
 sums <- data %>% group_by(cbsa, metro) %>% summarise(pop=sum(pop_1115), access=sum(access)) 

@@ -1476,7 +1476,7 @@ function tract_maps(container){
 		map.draw();
 	}	
 
-	d3.json("./data/tract_data.json", function(error, data){
+	d3.json("./data/akron_chicagor.json", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
 		console.log(data);
