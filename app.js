@@ -380,9 +380,12 @@ function aesthetics(data){
 		}
 	};
 
-	//internal aesthetic function generators
+	//internal aesthetic factory functions
 
 	//requirement: aesthetic mapping functions must only take a variable name as an argument
+	//the returned object may have any number of methods, but is required to have only one--a map method that takes
+	//values from data and returns an aesthetic value (e.g. "red" for stroke).
+	//the map method is called with the a record from data as its only argument as well as the corresponding geo object as this
 	//subsequent tweaking of parameters can be done by using scale-specific methods
 
 	//quantitative colors
@@ -649,14 +652,17 @@ function aesthetics(data){
 		return aes;
 	};
 
+	//aesthetic factory functions -- call these to generate scales/aesthetic mappers for stroke, fill, r, etc.
+	//the result of the factory function is an object with a map method. map methods take an observation from data and return an aesthetic value
+	//missing values are passed to the map method as null, the map method is called with the geographic feature as 'this'
 	return {
 		stroke: aes_color,
 		fill: aes_color,
 		strokecat: aes_color_categorical,
 		fillcat: aes_color_categorical,
-		radius: aes_radius,
-		x: aes_x,
-		y: aes_y 
+		r: aes_radius,
+		cx: aes_x,
+		cy: aes_y 
 	}
 
 }
@@ -697,8 +703,12 @@ function layer(){
 
 	//aesthetic methods
 	L.aes = {};
-	//aesthetic mapping function registry
+
+	//aesthetic mapping function registry for svg attributes
 	var aes_mappings = {};
+
+	//style mappings for svg css styles
+	var style_mappings = {};
 
 	//container for geo data
 	var geodata = null;
@@ -743,7 +753,9 @@ function layer(){
 				var aes = aesthetics(matched);
 			}
 
-			//decorator function that registers aesthetic function in aes_mappings object
+			//function that decorates aes factory functions with attr and scale names
+			//scale_name is used to retrieve factory function from aes object created by aesthetics() above
+			//calling the decorated factory function registers the returned aesthetic function in aes_mappings object
 			var aes_decorator = function(attr, scale_name){
 				if(arguments.length < 2){
 					scale_name = attr;
@@ -777,15 +789,58 @@ function layer(){
 			L.aes.strokecat = aes_decorator("stroke", "strokecat");
 			L.aes.fill = aes_decorator("fill");
 			L.aes.fillcat = aes_decorator("fill","fillcat");
-			L.aes.radius = aes_decorator("radius");
-			L.aes.x = aes_decorator("x");
-			L.aes.y = aes_decorator("y");
+			L.aes.r = aes_decorator("r");
+			L.aes.cx = aes_decorator("cx");
+			L.aes.cy = aes_decorator("cy");
 		}
 		catch(e){
 			console.log(e);
 		}
 
 		return L;
+	};
+
+	//set an arbitrary attribute for the features of this layer
+	//attr_mapper can be a function that takes a merged data value as an argument and returns an aesthetic value, or it can be a constant
+	//if a function attr_mapper will be called with the corresponding geo feature as this object
+	L.attr = function(attr, attr_mapper){
+		if(arguments.length==0){
+			return null;
+		}
+		else if(arguments.length==1){
+			return aes_mappings[attr];
+		}
+		else if(arguments.length > 1 && attr_mapper===null){
+			delete aes_mappings[attr];
+			return L;
+		}
+		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, r:1, cx:1, cy:1}){
+			aes_mappings[attr] = {map:attr_mapper};
+			return L;
+		}
+		else{
+			return null
+		}
+	};
+
+	//apply static styles to elements in layer -- analagous to attr above
+	//style_mapper called with merged data value as argument and geo object as this
+	L.style = function(style, style_mapper){
+		if(arguments.length==0){
+			return null;
+		}
+		else if(arguments.length==1){
+			return style_mappings[style];
+		}
+		else if(arguments.length > 1 && style_mapper===null){
+			delete style_mappings[style];
+			return L;
+		}
+		else{
+			style_mappings[style] = {map: style_mapper};
+			return L;
+		}
+
 	};
 
 	//run data matching checks
@@ -866,7 +921,7 @@ function layer(){
 
 		//de-duped data -- keep only first obs encountered for a geo
 		array.forEach(function(d,i){
-			
+
 			var id = get_geo_id(d);
 
 			if(lookup.hasOwnProperty(id)){
@@ -946,6 +1001,15 @@ function layer(){
 		return L;
 	};
 
+	//lookup a data record for geo_id -- returns null if missing or data not set
+	L.lookup = function(geo_id){
+		return lookup != null && lookup[geo_id] != null ? lookup[geo_id] : null;
+	};
+
+	//function to standardize data entry for L.geo
+	L.buildFeatureCollection = function(){
+
+	};
 
 	L.geo = function(geo_data, append){
 
@@ -1045,12 +1109,99 @@ function layer(){
 
 	};
 
-	//to do: enable for points
-	L.draw = function(draw_aesthetics){
+	//draw the layer
+	L.draw = function(resize_only){
 		var proj = map.projection();
 		var path = d3.geoPath().projection(proj);
 
-		console.log("DRAW");
+		//aesthetic mapping, yes or no?
+		var apply_aesthetics = (arguments.length==0 || !resize_only);
+
+		//methods that take in the geo object data, return record from lookup
+		var get_methods = {
+			point: function(d){return lookup[d.geo_id]},
+			poly: function(d){return lookup[d.properties.geo_id]}
+		};
+
+		//default aesthetics
+		var default_aes = {
+			point:{
+				"r":10,
+				"stroke":"#efefef",
+				"fill":"#efefef",
+				"cx":function(d){return proj([d.lon, d.lat])[0]},
+				"cy":function(d){return proj([d.lon, d.lat])[1]}
+			},
+			poly:{
+				"stroke":"#aaaaaa",
+				"fill":"#efefef",
+				"d":path
+			}
+		};
+
+		//set aesthetics
+		var apply_aes = function(selection, point_or_poly){
+			var get_record = get_methods[point_or_poly]; //how to retrieve data
+			var aes_defaults = default_aes[point_or_poly]; 
+
+			//apply defaults, based on geography only
+			for(var da in aes_defaults){
+				if(aes_defaults.hasOwnProperty(da) && !aes_mappings.hasOwnProperty(da)){
+					//if da is a valid default and has not been registered by user as custom aes, apply it to selection
+					selection.attr(da, aes_defaults[da]);
+				}
+			}
+
+			//now loop through user-specified aesthetics if we are applying aesthetics on this draw
+			if(apply_aesthetics){
+				for(var a in aes_mappings){
+					if(aes_mappings.hasOwnProperty(a)){
+						if(typeof aes_mappings[a].map === "function"){
+							selection.attr(a, function(d,i){
+								//data record for given feature -- may be null or undefined
+								var record_in_data = get_record(d);
+
+								//missing values get passed to function as null
+								if(typeof record_in_data === "undefined"){
+									record_in_data = null;
+								}
+
+								//all aes methods have a map method that take data record and return aesthetic value
+								return aes_mappings[a].map.call(d, record_in_data);
+							});
+						}
+						else{
+							//apply attribute as a constant
+							selection.attr(a, aes_mappings[a].map);
+						}
+					}
+				}
+			}
+
+			//apply any styles
+			for(var s in style_mappings){
+				if(style_mappings.hasOwnProperty(s)){
+					if(typeof style_mappings[s].map === "function"){
+						selection.style(s, function(d,i){
+							//data record for given feature -- may be null or undefined
+							var record_in_data = get_record(d);
+
+							//missing values get passed to function as null
+							if(typeof record_in_data === "undefined"){
+								record_in_data = null;
+							}
+
+							//all style methods have a map method that take data record and return style value
+							return style_mappings[s].map.call(d, record_in_data);
+						});
+					}
+					else{
+						//apply attribute as a constant
+						selection.style(s, style_mappings[s].map);
+					}
+				}
+			}
+		};
 
 		if(is_points){
 			var i = -1;
@@ -1058,28 +1209,12 @@ function layer(){
 				var tmp = null;
 				tmp = geodata[i].g.selectAll("circle").data(geodata[i].data, function(d){return d.geo_id});
 				tmp.exit().remove();
-				geodata[i].selection = tmp.enter().append("circle").merge(tmp)
-										  .attr("r", "10")
-										  .attr("stroke","#ffffff")
-										  .attr("fill","#efefef")
-										  .attr("cx", function(d){
-										  	return proj([d.lon, d.lat])[0];
-										  })
-										  .attr("cy", function(d){
-										  	return proj([d.lon, d.lat])[1];
-										  })
-										  ;
+				geodata[i].selection = tmp.enter().append("circle").merge(tmp);
 
-				for(var a in aes_mappings){
-					if(aes_mappings.hasOwnProperty(a)){
-						geodata[i].selection.attr(a, function(d,i){
-							//map is the aes function from data record to aesthetic
-							var record = lookup[d.geo_id];
-							return aes_mappings[a].map(record != null ? record : null);
-						});
-					}
-				}
+				apply_aes(geodata[i].selection, "point");
+				
 			}
+			
 		}
 		else{
 			var i = -1;
@@ -1087,21 +1222,14 @@ function layer(){
 				var tmp = null;
 				tmp = geodata[i].g.selectAll("path").data(geodata[i].data.features, function(d){return d.properties.geo_id});
 				tmp.exit().remove();
-				geodata[i].selection = tmp.enter().append("path").merge(tmp)
-										  .attr("stroke","#aaaaaa")
-										  .attr("fill","#efefef")
-										  .attr("d", path);
+				geodata[i].selection = tmp.enter().append("path").merge(tmp);
 
-				for(var a in aes_mappings){
-					if(aes_mappings.hasOwnProperty(a)){
-						geodata[i].selection.attr(a, function(d,i){
-							var record = lookup[d.properties.geo_id];
-							return aes_mappings[a].map(record != null ? record : null);
-						});
-					}
-				}
+				apply_aes(geodata[i].selection, "poly");
+
 			}
+
 		}
+
 	};
 	
 	return L;
@@ -1318,105 +1446,184 @@ function mapd(container){
 		return layers;
 	};
 
-		//take dimensions of map area
-		var projection = d3.geoAlbersUsa();
+	//record container dimensions // create default projection
+	//store projection in private var; default will be set with map.projection(null)
+	var projection = d3.geoAlbersUsa();
+	//layer that projection will be fit to, if any
+	var fit_layer = null;
+	//is the current projection the default one?
+	var default_proj_in_use;
 
-		//record dimensions of container
-		var dimensions;
-		var set_dim = function(){
-			dimensions = get_dim(container);
-		};
-		set_dim();
+	//record dimensions of container
+	var dimensions;
+	map.set_dim = function(){
+		var new_dim = get_dim(container);
 
-		//construct a default AlbersUsa projection based on dimensions of container -- mutates the private projection variable used elsewhere
-		var default_projection = function(){
-			var aspect = 0.66; //determines the height of the svg container based on given width
-			var scale = 1.35; //scalar of width to be used for Albers
-			
-			set_dim();
-			
-			//determine a height of best fit -- try to fit full width, but go down to as much as 30% of width to see if map will fit height
-			var calculated_height;
-			var calculated_width;
-			var proportion = 1;
-			while(proportion >= 0.3){
-				calculated_width = dimensions.width*proportion;
-				calculated_height = aspect*calculated_width;
-				//will it fit?
-				if(calculated_height <= dimensions.height){
-					break;
-				}
-				//step down 5%
-				proportion -= 0.05;
+		var height_diff = dimensions==null ? new_dim.height : new_dim.height - dimensions.height;
+		var width_diff = dimensions==null ? new_dim.width : new_dim.width - dimensions.width;
+
+		//set
+		dimensions = new_dim;
+
+		//return T/F: have the container dimensions changed since the last time they were checked/set?
+		return {width:dimensions.width, height:dimensions.height, changed: (width_diff != 0 || height_diff != 0)};
+	};
+	map.set_dim(); //initialize dimensions
+
+	//construct a default AlbersUsa projection based on dimensions of container -- mutates the private projection variable used elsewhere
+	var default_projection = function(){
+		var aspect = 0.66; //determines the height of the svg container based on given width
+		var scale = 1.35; //scalar of width to be used for Albers
+		
+		//determine a height of best fit -- try to fit full width, but go down to as much as 30% of width to see if map will fit height
+		var calculated_height;
+		var calculated_width;
+		var proportion = 1;
+		while(proportion >= 0.3){
+			calculated_width = dimensions.width*proportion;
+			calculated_height = aspect*calculated_width;
+			//will it fit?
+			if(calculated_height <= dimensions.height){
+				break;
 			}
-
-			projection = d3.geoAlbersUsa().scale(calculated_width*scale).translate([dimensions.width/2, dimensions.height/2]);
-
-			//don't set map dimensions
-		};
-		default_projection();
-
-
-	//if layer_to_fit, scale and translate projection to fit layer_to_fit
-	map.projection = function(proj, layer_to_fit){
-
-		//console.log(layer_to_fit.geo());
-
-		if(arguments.length == 0){
-			return projection;
+			//step down 5%
+			proportion -= 0.05;
 		}
-		else if(arguments.length > 1 && layer_to_fit.is_poly()){
-			proj.fitExtent([[0,0], [dimensions.width, dimensions.height]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
-			projection = proj;
-			//console.log(dimensions.width);
-			return map;
-		}
-		else{
-			projection = proj;
-			return map;
-		}
+
+		return d3.geoAlbersUsa().scale(calculated_width*scale).translate([dimensions.width/2, dimensions.height/2]);
 	};
 
 
+	//if layer_to_fit, scale and translate projection to fit layer_to_fit in current dimension
+	map.projection = function(proj, layer_to_fit){
+		
+		if(arguments.length == 0){
+			//get
+			return projection;
+		}
+		else{
+
+			//a null/undefined arg will set projection to default usng current dimension (result of default_projection())
+			if(proj == null){
+				proj = default_projection();
+				default_proj_in_use = true;
+			}
+			else{
+				default_proj_in_use = false;
+			}
+
+			//providing a layer object will adjust projection to fit the layer
+			if(arguments.length > 1 && layer_to_fit.is_poly()){
+				proj.fitExtent([[0,0], [dimensions.width, dimensions.height]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
+				fit_layer = layer_to_fit;
+			}
+			else{
+				//if you set a projection and do not supply a fit layer, the projection will no longer be fit to a layer
+				fit_layer = null;
+			}
+
+			//set projection
+			projection = proj;
+
+			return map;
+		}
+		
+	};
+
+	map.projection(null); //initialize the default projection
+
+
 	//draw all layers
-	map.draw = function(){
+	map.draw = function(resize_only){
+		//before drawing set dimensions
+
+		//console.log("Have dimensions changed? " + (dimensions_changed ? "Yes" : "No"));
+		var dimensions_changed = map.set_dim().changed;
+
+		//rescale projection, if necessary
+		//currently scale is set by the default projection or if a layer_to_fit is specified
+		//if the user wants to handle responsive projection then they should not make the map responsive
+		if(dimensions_changed){
+			if(fit_layer != null){
+				map.projection(projection, fit_layer);
+			}
+			else if(default_proj_in_use){
+				//note that the use could use default projection with a fit_layer
+				map.projection(null);
+			}
+		}
+
+		resize_only = arguments.length > 0 && !!resize_only;
+
 		var l = -1;
 		while(++l < layers.length){
-			layers[l].draw();
+			layers[l].draw(resize_only);
 		}
+
 		return map;
 	};
 
 	map.clear = function(){
-		projection = d3.geoAlbersUsa();
-		set_dim();
+		projection = map.projection(null);
 		layers = []; //remove all internal layer data
+
+		//create new, blank svg
 		map.svg.remove();
 		map.svg = map_svg.append("g");
 		
-		//clear canvas
-		//hide_tooltip
+		//when in use, wipe canvas too, reset legend
+
 		return map;
 	};
+
+	//enable/disable responsiveness
+	var is_responsive = true;
+	map.responsive = function(make_responsive){
+		if(arguments.length==0){
+			//toggle
+			is_responsive = !is_responsive; 
+		}
+		else if(!make_responsive){
+			is_responsive = false;
+		}
+		else{
+			is_responsive = true;
+		}
+
+		return map;
+	};
+
+	var resize_timer;
+	window.addEventListener("resize", function(){
+		clearTimeout(resize_timer);
+		if(is_responsive){
+			resize_timer = setTimeout(function(){
+				map.draw(true); //resize_only set to true
+			}, 250);
+		}
+	});
 
 
 	//make syncronous geo data available to layer
 	var geo_api = geo_api_sync();
 
-	//console.log(geo_api);
-
-	//to do: figure out a better way to pull from the geo_api
+	//provide an interface to a geo api get method
 	map.geo = function(geo, type){
-		var geo_data = geo_api.get(geo, type);
-		//console.log(geo_data);
-
+		if(arguments.length == 1){
+			var geo_data = geo_api.get(geo);	
+		}
+		else if(arguments.length > 1){
+			var geo_data = geo_api.get(geo, type);
+		}
+		else{
+			var geo_data = null;
+		}
+		
 		return geo_data;
 		
 	};	
 
 	return map;
-
-	setTimeout(set_dim,1000);
 }
 
 //to do: transfer geojson to data folder in project
@@ -1425,19 +1632,22 @@ function tract_maps(container){
 
 	var wrap = d3.select(container);
 	var select = wrap.append("div");
+	var filter_wrap = wrap.append("div").classed("c-fix",true);
+
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
 					   .style("width","100%")
                        .style("min-height","400px")
                        .style("height","85vh");
 
 	var geoCache = {};
+	var topoCache = {};
 	function get_and_map(cbsa){
 		if(geoCache.hasOwnProperty(cbsa)){
-			map_tract(geoCache[cbsa]);
+			map_tract(geoCache[cbsa], topoCache[cbsa]);
 		}
 		else{
 			var uri = "./data/tract_json/"+cbsa+".json";
-			//console.log(uri);
+
 			d3.json(uri, function(error, topo){
 				if (error) throw error;
 
@@ -1445,8 +1655,9 @@ function tract_maps(container){
 				geoj.bbox = topojson.bbox(topo);
 
 				geoCache[cbsa] = geoj; //cache it
+				topoCache[cbsa] = topo;
 
-				map_tract(geoj);		
+				map_tract(geoj, topo);		
 			});
 		}
 	}
@@ -1454,20 +1665,80 @@ function tract_maps(container){
 	var map = mapd(map_wrap.node());
 	var alldata;
 
-	function map_tract(geoj){
+	function map_tract(geoj, topo){
 		map.clear();
 
 		var tract_layer = map.layer().geo(geoj);
 
 		if(!!alldata){
 			tract_layer.data(alldata, "tr").set_aes();
-			//var cols = ['#ffffff','#d7301f','#ef6548','#7fcdbb','#1d91c0','#0c2c84'];
-			var cols = ['#efefef','#cb181d','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
-			//console.log(cat_scale);
 
-			console.log(tract_layer.warnings());
+			var cols = ['#cb181d','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
+			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+
+			build_filters(tract_layer);
+
+			//temp
+			//	geoj.features.forEach(function(d){
+			//		var id = d.properties.geo_id;
+			//		d.properties.place_fips = tract_layer.lookup(id).pl;
+			//	});
+
+			//add mesh layer
+			try{
+				var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+						var a_place = tract_layer.lookup(a.properties.geo_id).pl;
+						var b_place = tract_layer.lookup(b.properties.geo_id).pl;
+
+						var keep = false;
+
+						if((!!a_place || !!b_place) && (a_place !== b_place)){
+							var keep = true; 
+						}
+						else if(!!a_place && a===b){
+							var keep = true;
+						}
+
+						return keep;
+
+					});
+
+			}
+			catch(e){
+				var mesh = null;
+			}
+			finally{
+				if(mesh != null){
+					var mesh_fc = {
+						"type": "FeatureCollection",
+						"bbox": geoj.bbox,
+						"features": [
+							{
+								"type": "Feature",
+								"geometry": mesh,
+								"properties": {
+									"geo_id":"primary_cities"
+								}
+							}	
+						]
+					};
+
+					//add two mesh layers
+					var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
+															 .attr("fill","transparent")
+															 .attr("stroke-width","3.5")
+															 .style("pointer-events","none");
+					var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
+										 .attr("fill","transparent")
+										 .attr("stroke-width","1.5")
+										 .attr("stroke-dasharray","4,2")
+										 .style("pointer-events","none");
+				}
+			}
+
 		}
+
+		//tract_layer.attr("stroke","orange").attr("stroke-width","3px");
 
 		var projection = tract_layer.get_albers();
 
@@ -1476,10 +1747,10 @@ function tract_maps(container){
 		map.draw();
 	}	
 
-	d3.json("./data/akron_chicago.json", function(error, data){
+	d3.json("./data/tract_data.json", function(error, data){
 		//map.data(data, "tract");
 		alldata = data;
-		console.log(data);
+
 		metro_select().setup(select.node()).onchange(function(cbsa){
 			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
@@ -1487,6 +1758,52 @@ function tract_maps(container){
 
 		get_and_map("10420");
 	});
+
+	//build filters
+	function build_filters(layer){
+		var filters_update = filter_wrap.selectAll("div.filter").data(["av","pov","ki","ba"]);
+		filters_update.exit().remove();
+		var filters_enter = filters_update.enter().append("div").classed("filter",true);
+			filters_enter.append("p").text(function(d){
+				var text = {av:"Availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
+				return text[d];
+			});
+		var filters = filters_enter.merge(filters_update);
+			filters.style("float","left").style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
+					.style("border","1px solid #aaaaaa")
+					.style("border-radius","5px");
+
+		filters.on("mousedown",function(d){
+			if(d=="av"){
+				layer.style("opacity",function(d){
+					return d.av=="N" ? "0.05" : "1";
+				});
+			}
+
+			if(d=="pov"){
+				layer.style("opacity",function(d){
+					return d.pov < 0.2 ? "0.05" : "1";
+				});
+			}
+
+			if(d=="ki"){
+				layer.style("opacity",function(d){
+					return d.ki < 0.23 ? "0.05" : "1";
+				});
+			}
+
+			if(d=="ba"){
+				layer.style("opacity",function(d){
+					return d.ba < 0.28 ? "0.05" : "1";
+				});
+			}
+
+			layer.draw();
+		});
+	}
+
+
+
 
 }
 
