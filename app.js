@@ -692,6 +692,7 @@ function aesthetics(data){
 //point_or_poly should take either "point" or "poly". If missing, the (geotype-dependent) default is used
 
 //to do: check on calc of composite bbox
+//to do: currently the library assumes a FeatureCollection is a polygon: layer.geo only supports registering a polygon feature collection or an array of points
 
 function layer(){
 
@@ -743,7 +744,7 @@ function layer(){
 
 	//set aesthetics based on distribution in data, if passed, or in matched data (default)
 	//matched is created in qa(), so call this after qa()
-	L.set_aes = function(data){
+	var set_aes = function(data){
 		//console.log(matched);
 		try{
 			if(arguments.length > 0){
@@ -855,20 +856,11 @@ function layer(){
 		var geos = [];
 
 		//determine what geos are here 
-		if(is_points){
-			geodata.forEach(function(D){
-				D.data.forEach(function(d){
-					geos.push(d.geo_id);
-				});
+		geodata.forEach(function(D){
+			D.data.features.forEach(function(d){
+				geos.push(d.properties.geo_id);
 			});
-		}
-		else{
-			geodata.forEach(function(D){
-				D.data.features.forEach(function(d){
-					geos.push(d.properties.geo_id);
-				});
-			});
-		}
+		});
 
 		//look through geos and find values missing from data
 		var i = -1;
@@ -995,7 +987,7 @@ function layer(){
 		//run qa, build aesthetic mappers
 		if(lookup!=null && geodata!=null){
 			qa();
-			L.set_aes();
+			set_aes();
 		}
 
 		return L;
@@ -1011,6 +1003,7 @@ function layer(){
 
 	};
 
+	//note that points and polygons are not compatible in the same layer because they do not share the same eligible attributes
 	L.geo = function(geo_data, append){
 
 		//append the geo data to the existing geodata in this layer
@@ -1025,33 +1018,38 @@ function layer(){
 			//geojson -- geo_data.features == [{type:"feature", properties:{prop:propval}}, {}] 
 			if(is_points){append=false;} //do not mix points and polys in layer
 			is_points = false;
-			var bbox = geo_data.bbox;
+			var geoBounds = d3.geoBounds(geo_data);
+			var bbox = [geoBounds[0][0], geoBounds[0][1], geoBounds[1][0], geoBounds[1][1]];
+
+			geo_data.bbox = bbox;
+
 		}
 		else{
 			//array of point data
 			if(!is_points){append=false;}
 			is_points = true;
-			
-			var bbox;
-			geo_data.forEach(function(d,i){
-				if(i==0){
-					bbox = [d.lon, d.lat, d.lon, d.lat];
-				}
-				else{
-					if(d.lon < bbox[0]){
-						bbox[0] = d.lon;
-					}
-					if(d.lon > bbox[2]){
-						bbox[2] = d.lon;
-					}
-					if(d.lat < bbox[1]){
-						bbox[1] = d.lat;
-					}
-					if(d.lat > bbox[3]){
-						bbox[3] = d.lat;
-					}
-				}
-			});
+
+			//build features array
+			var features = geo_data.map(function(d,i){
+											return {
+													"type": "Feature",
+													"geometry": {
+														"type": "Point",
+														"coordinates": [d.lon, d.lat]
+													},
+													"properties": d
+													}	
+										});
+
+			//add features to FeatureCollection
+			var geo_data = {
+				"type": "FeatureCollection",
+				"features": features 
+			};
+
+			var geoBounds = d3.geoBounds(geo_data);
+			var bbox = [geoBounds[0][0], geoBounds[0][1], geoBounds[1][0], geoBounds[1][1]];
+			geo_data.bbox = bbox;
 		}
 
 		//set layer bbox
@@ -1078,7 +1076,7 @@ function layer(){
 		//run qa, build aesthetic mappers
 		if(lookup!=null && geodata!=null){
 			qa();
-			L.set_aes();
+			set_aes();
 		}
 
 		return L;
@@ -1117,20 +1115,15 @@ function layer(){
 		//aesthetic mapping, yes or no?
 		var apply_aesthetics = (arguments.length==0 || !resize_only);
 
-		//methods that take in the geo object data, return record from lookup
-		var get_methods = {
-			point: function(d){return lookup[d.geo_id]},
-			poly: function(d){return lookup[d.properties.geo_id]}
-		};
-
+		
 		//default aesthetics
 		var default_aes = {
 			point:{
 				"r":10,
 				"stroke":"#efefef",
 				"fill":"#efefef",
-				"cx":function(d){return proj([d.lon, d.lat])[0]},
-				"cy":function(d){return proj([d.lon, d.lat])[1]}
+				"cx":function(feature){return proj(feature.geometry.coordinates)[0]},
+				"cy":function(feature){return proj(feature.geometry.coordinates)[1]}
 			},
 			poly:{
 				"stroke":"#aaaaaa",
@@ -1139,14 +1132,18 @@ function layer(){
 			}
 		};
 
+		//methods that take in the geo object data, return record from lookup -- draw only accepts geojson now, no longer arrays of points
+		var get_record = function(d){return lookup[d.properties.geo_id]}; 
+
 		//set aesthetics
 		var apply_aes = function(selection, point_or_poly){
-			var get_record = get_methods[point_or_poly]; //how to retrieve data
+
 			var aes_defaults = default_aes[point_or_poly]; 
 
 			//apply defaults, based on geography only
 			for(var da in aes_defaults){
 				if(aes_defaults.hasOwnProperty(da) && !aes_mappings.hasOwnProperty(da)){
+					//console.log("Applying attr: "+da);
 					//if da is a valid default and has not been registered by user as custom aes, apply it to selection
 					selection.attr(da, aes_defaults[da]);
 				}
@@ -1207,12 +1204,11 @@ function layer(){
 			var i = -1;
 			while(++i < geodata.length){
 				var tmp = null;
-				tmp = geodata[i].g.selectAll("circle").data(geodata[i].data, function(d){return d.geo_id});
+				tmp = geodata[i].g.selectAll("circle").data(geodata[i].data.features, function(d){return d.properties.geo_id});
 				tmp.exit().remove();
 				geodata[i].selection = tmp.enter().append("circle").merge(tmp);
 
-				apply_aes(geodata[i].selection, "point");
-				
+				apply_aes(geodata[i].selection, "point");	
 			}
 			
 		}
@@ -1225,7 +1221,6 @@ function layer(){
 				geodata[i].selection = tmp.enter().append("path").merge(tmp);
 
 				apply_aes(geodata[i].selection, "poly");
-
 			}
 
 		}
@@ -1235,45 +1230,43 @@ function layer(){
 	return L;
 }
 
-//to do: review requiremnents of this module
+//to do: make more explicit whether scrollbars are included
 
-function get_dim(el, maxwidth, maxheight){
+function get_dim(el){
+
+	//viewport height/width -- note that window.innerwidth includes scrollbars so will be wider than clientWidth
+	var window_height = Math.max(document.documentElement.clientHeight, (window.innerHeight || 0));
+	var window_width = Math.max(document.documentElement.clientWidth, (window.innerWidth || 0));
 
 	if(arguments.length > 0){
 		var element = el;
+		var get_viewport = false;
 	}
-	else{
+	else{ 
 		var element = document.documentElement;
+		var get_viewport = true;
 	}
 
-	var floor = 50;
 	var err = false;
 
 	try{
 		var box = element.getBoundingClientRect();
 		var w = Math.floor(box.right - box.left);
 		var h = Math.floor(box.bottom - box.top);
-		if(w < floor || h < floor){throw "badWidth"}
 	}
 	catch(e){
 		var box = {};
-		var w = floor;
-		var h = floor;
+		var w = window_width;
+		var h = window_height;
 		err = true;
 	}
 
-	if(!!maxwidth && w > maxwidth){w = maxwidth;}
-	if(!!maxheight && h > maxheight){h = maxheight;}
-
-	var dim = {width:w, height:h, error:err, box:box};
+	//if we want viewport dims: 1) derived w is better than window_width because it subtracts scroll bars,
+	//							2) window_height is best because it is limited to viewable area while derived h will cover the whole doc
+	//							   --note that window_height may not subtract horizontal scroll bar height, but this is less of a problem
+	var dim = {width: w, height: (get_viewport ? window_height : h), error:err, box:box, viewport_height: window_height};
 
 	return dim;
-
-
-
-	//viewport height
-	var window_height = Math.max(document.documentElement.clientHeight, (window.innerHeight || 0));
-	
 }
 
 //synchronous geojson api
@@ -1355,87 +1348,99 @@ function geo_api_sync(){
 //       --map layer. how to automatically fit to the union of all of those geojson objects when the fitExtent method only works on a
 //		 --single geojson object. Will need to write a custom method that is based on fitExtent but works on multiple geojson objects (also for points!)
 //future features: add a table option to view data that matches a geography
-
+//to do: make points into valid geojson features which could be used as fit_layers
 //known issues: if the page does not yet have scroll bars, a map could get clipped when scroll bars are added
+//to do: enforce application of projection after a layer has been added (map depends on having geo data to set projection scale and zoom functionality)
+//to do: investigate any unexpected behavior that may occur if the default projection is used with subsequent geos (no layer fit)
 
-function mapd(container){	
+function mapd(root_container){	
 	
 	if(arguments.length==0){
 		var new_node = document.createElement("div");
-		container = document.body.appendChild(new_node);
+		root_container = document.body.appendChild(new_node);
 	}
 
 	//browser compatability testing
 	if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") || 
 		!Array.prototype.filter || !Array.prototype.map || !Array.prototype.forEach || !Array.prototype.indexOf){
-		container.innerHTML = '<p style="font-style:italic;text-align:center;margin:30px 0px 30px 0px;">This interactive feature requires a modern browser such as Chrome, Firefox, IE10+, or Safari.</p>';
+		root_container.innerHTML = '<p style="font-style:italic;text-align:center;margin:30px 0px 30px 0px;">This interactive feature requires a modern browser such as Chrome, Firefox, IE10+, or Safari.</p>';
 		return null;
 	}
 
 	//dom structure
-	var outer_wrap = d3.select(container).append("div")
-										 .style("padding","0px")
-										 .style("width","100%")
-										 .style("height","100%")
-										 .style("min-height","100px")
-										 .style("position","relative");
+	//dom_root (passed as arg to mapd)
+	//...menu_wrap (hold menu, may float alongside or above map)
+	//...container_wrap (holds map) -- eligible space for map -- width remains at 100% of parent
+	//......outer_wrap (parent of svg, canvas, tooltip) -- width of this element is set
+	//.........map_canvas (canvas background)
+	//.........map_svg (main svg)
+	//............map_group (root group of svg) -- allows for easy removal of layers by replacing this <g> with new one
+	//.........tooltip_wrap -- tooltip
 
-	var map_canvas = outer_wrap.append("canvas").style("width","100%").style("height","100%").style("position","absolute");
-	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%");
-	var map_wrap = map_svg.append("g");
+	var dom_root = d3.select(root_container);
+
+	//hold menu elements
+	//to do: make menu building capabilities more robust
+	var menu_wrap = dom_root.append("div").classed("c-fix",true);
+
+	//container is given a width of 100%, a non-zero min-height, and 0 padding to aid in accurate resizing
+	//you should never set the dimensions of this element
+	var container_wrap = dom_root.append("div")
+								  .style("width","100%")
+								  .style("min-height","150px")
+								  .style("padding","0px");
+
+	//container_wrap node
+	var container = container_wrap.node();
+
+	//the dom element that should be resized (height only, for now) to fit map
+	var outer_wrap = container_wrap.append("div")
+									.style("padding","0px")
+									.style("width","100%")
+									.style("height","100%")
+									.style("min-height","150px")
+									.style("position","relative")
+									.style("overflow","hidden");
+
+	var map_canvas = outer_wrap.append("canvas").style("width","100%").style("height","100%").style("position","absolute").style("z-index","1");
+	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%").style("position","relative").style("z-index","2");
+	var map_group = map_svg.append("g");
+
+	outer_wrap.append("div").style("width","50%").style("height","50%").style("position","absolute")
+							.style("border","1px solid orange").style("top","0px").style("z-index","10");
 
 	var tooltip_wrap = outer_wrap.append("div")
-								 .style("width","100%")
-								 .style("height","100%")
+								 .style("width","100px")
+								 .style("height","200px")
 								 .style("position","absolute")
-								 .style("top","0px")
-								 .style("left","0px");
+								 .style("z-index","3")
+								 .style("top","-200px")
+								 .style("left","-100px")
+								 .style("visibility","hidden");
 
-	//internal parameters
-	var layers = [];
+	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","25px").style("right","25px")
+												//.style("width","25px").style("height","100px")
+												.style("background-color","#fffffff")
+												.style("z-index","10")
+												.style("cursor","pointer")
+												.style("padding","7px 10px")
+												.style("border","1px solid #aaaaaa")
+												.style("border-radius","5px");
+		zoom_button.append("p")
+					.text("zoom")
+					.style("user-select", "none")
+					.style("margin","0px");
 
 	//public map object								 
 	var map = {
-		svg:map_wrap,
+		svg:map_group,
 		canvas:map_canvas
 	};
 
-	var mapHeight = {value:50, units:"vh"};
-	var mapWidth = {value:100, units:"%"};
-	
-	map.height = function(h, units){
-		if(arguments.length==0){
-			return mapHeight.value+mapHeight.units;
-		}
-		else if(arguments.length==1){
-			mapHeight.value = h;
-			mapHeight.units = "px";
-		}
-		else{
-			mapHeight.value = h;
-			mapHeight.units = units;			
-		}
-		outer_wrap.style("height", mapHeight.value+mapHeight.units);
-		return map;
-	};
+	//hold all layers generated for this map
+	var layers = [];
 
-	map.width = function(w, units){
-		if(arguments.length==0){
-			return mapWidth.value+mapWidth.units;
-		}
-		else if(arguments.length==1){
-			mapWidth.value = w;
-			mapWidth.units = "px";
-		}
-		else{
-			mapWidth.value = w;
-			mapWidth.units = units;			
-		}
-		outer_wrap.style("width", mapWidth.value+mapWidth.units);
-		return map;
-	};
-
-	//layer should only be called from map.layer so the proper context can be set
+	//layer should only be called as a method of map so the proper context can be set
 	map.layer = function(){
 		var l = layer.call(map);
 		layers.push(l);
@@ -1446,18 +1451,128 @@ function mapd(container){
 		return layers;
 	};
 
+	map.menu = function(){
+		return menu_wrap;
+	};
+
+	//set map countainer (outer_wrap) height -- does not touch container
+	var set_height = function(h, units){
+		var mapHeight = {value:50, units:"vh"};
+
+		if(arguments.length==0){
+			return mapHeight.value+mapHeight.units;
+		}
+		else if(arguments.length==1 || units == null){
+			mapHeight.value = h;
+			mapHeight.units = "px";
+		}
+		else{
+			mapHeight.value = h;
+			mapHeight.units = units;			
+		}
+		outer_wrap.style("height", mapHeight.value+mapHeight.units);
+		
+		return mapHeight;
+	};
+
+	//should not need to set width
+	var set_width = function(w, units){
+		var mapWidth = {value:100, units:"%"};
+
+		if(arguments.length==0){
+			return mapWidth.value+mapWidth.units;
+		}
+		else if(arguments.length==1 || units == null){
+			mapWidth.value = w;
+			mapWidth.units = "px";
+		}
+		else{
+			mapWidth.value = w;
+			mapWidth.units = units;			
+		}
+		outer_wrap.style("width", mapWidth.value+mapWidth.units);
+		
+		return mapWidth;
+	};
+
+	//by default, the map is responsive and auto sizes to container dimensions
+	//but the user can override this behavior using map.responsive() and setting fixed dimensions using map.height() and map.width()
+	var fixedHeight = null;
+	var fixedWidth = null;
+
+	map.height = function(height, units){
+		if(height===null){
+			fixedHeight = null;
+			set_height(100,"%");
+		}
+		else{
+			fixedHeight = set_height(height, units);
+		}
+	};
+
+	map.width = function(width, units){
+		if(width===null){
+			fixedWidth = null;
+			set_width(100,"%");
+		}
+		else{
+			fixedWidth = set_width(width, units);
+		}
+	};
+
 	//record container dimensions // create default projection
-	//store projection in private var; default will be set with map.projection(null)
-	var projection = d3.geoAlbersUsa();
-	//layer that projection will be fit to, if any
-	var fit_layer = null;
-	//is the current projection the default one?
-	var default_proj_in_use;
 
 	//record dimensions of container
+	//dimensions updated before each redraw and initialized once below
 	var dimensions;
+	var g_translate = [0,0]; //record dragging of <g>roup
+	
+	var center = [0,0];
+	var relative_center = [0.5, 0.5]; //what position, [0,1] is the center of the map relative to the range of projected [lon,lat]
+	
+	var zoom_scalar = 1;
+
+	var default_aspect = 0.66; //aspect ratio to revert to
+	var aspect = default_aspect; //aspect ratio of map on page (container width * aspect ratio = height);
+
+	//set the available drawing dimensions based on CONTAINER, taking into consideration a rudimentary aspect ratio of the underlying geo
+	//utilized by projection methods that determines how big to draw map
 	map.set_dim = function(){
+		
+		//get dimensions of container -- how wide is it?
 		var new_dim = get_dim(container);
+		
+		//console.log(aspect);
+		if(aspect <= 1){
+			new_dim.height = aspect*new_dim.width;
+		}
+		else{
+			new_dim.height = new_dim.viewport_height;
+		}
+
+		//HEIGHT OVERRIDES
+		//enforce height restriction #1 -- map can't be taller than viewport
+		if(new_dim.height > new_dim.viewport_height){
+			new_dim.height = new_dim.viewport_height;
+		}
+
+		//enforce height restriction #2 -- subtract the distance of map from top of root element (accounts for menu)
+		try{
+			var top_of_root = dom_root.node().getBoundingClientRect().top;
+			var top_of_container = new_dim.box.top;
+
+			//if there's space between top of map and root, remove it from height allowed for map
+			//to do: fine-tune so remove might always force map+menu to take up viewport height
+			var remove = top_of_container - top_of_root;
+			
+			//only remove what is there and don't remove if you don't have to (map + menu isn't taller than viewport)
+			if(remove < new_dim.height && (new_dim.height + remove) > new_dim.viewport_height){
+				new_dim.height = new_dim.height - remove;
+			}
+		}
+		catch(e){
+			new_dim.height = new_dim.viewport_height;
+		}		
 
 		var height_diff = dimensions==null ? new_dim.height : new_dim.height - dimensions.height;
 		var width_diff = dimensions==null ? new_dim.width : new_dim.width - dimensions.width;
@@ -1465,15 +1580,29 @@ function mapd(container){
 		//set
 		dimensions = new_dim;
 
+		//set the wrapper to the calculated height
+		set_height(new_dim.height);
+
+		//record the center in unzoomed coords
+		center = [dimensions.width/2, dimensions.height/2];
+
 		//return T/F: have the container dimensions changed since the last time they were checked/set?
 		return {width:dimensions.width, height:dimensions.height, changed: (width_diff != 0 || height_diff != 0)};
 	};
 	map.set_dim(); //initialize dimensions
 
+	map.get_dim = function(){
+		return dimensions;
+	};
+
+	//PROJECTION
+	//store projection in private var; default will be set with map.projection(null)
+	var projection = d3.geoAlbersUsa();
+
 	//construct a default AlbersUsa projection based on dimensions of container -- mutates the private projection variable used elsewhere
 	var default_projection = function(){
-		var aspect = 0.66; //determines the height of the svg container based on given width
-		var scale = 1.35; //scalar of width to be used for Albers
+		aspect = default_aspect; //determines the height of the svg container based on given width
+		var scale = 1.35; //scalar of width to be used for AlbersUsa
 		
 		//determine a height of best fit -- try to fit full width, but go down to as much as 30% of width to see if map will fit height
 		var calculated_height;
@@ -1493,65 +1622,123 @@ function mapd(container){
 		return d3.geoAlbersUsa().scale(calculated_width*scale).translate([dimensions.width/2, dimensions.height/2]);
 	};
 
-
-	//if layer_to_fit, scale and translate projection to fit layer_to_fit in current dimension
-	map.projection = function(proj, layer_to_fit){
+	//scale and translate projection to fit layer_to_fit in current dimension
+	//apply projection AFTER first geo layer to set aspect
+	map.projection = function(proj){
 		
 		if(arguments.length == 0){
 			//get
 			return projection;
 		}
-		else{
-
-			//a null/undefined arg will set projection to default usng current dimension (result of default_projection())
-			if(proj == null){
-				proj = default_projection();
-				default_proj_in_use = true;
-			}
-			else{
-				default_proj_in_use = false;
-			}
-
-			//providing a layer object will adjust projection to fit the layer
-			if(arguments.length > 1 && layer_to_fit.is_poly()){
-				proj.fitExtent([[0,0], [dimensions.width, dimensions.height]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
-				fit_layer = layer_to_fit;
-			}
-			else{
-				//if you set a projection and do not supply a fit layer, the projection will no longer be fit to a layer
-				fit_layer = null;
-			}
-
-			//set projection
-			projection = proj;
-
-			return map;
+		else if(proj===null){
+			proj = default_projection();
 		}
-		
+
+		if(layers.length > 0){
+			var layer_to_fit = layers[0];
+			
+			var previous_scale = proj.scale();
+			proj.fitExtent([[0,0], [dimensions.width*zoom_scalar, dimensions.height*zoom_scalar]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
+			var new_scale = proj.scale();
+
+			//could use ratio of new_scale:previous_scale instead of zoom_scalar
+
+			//From docs: The scale factor corresponds linearly to the distance between projected points; however, absolute scale factors are not equivalent across projections.
+			try{
+				//get projected bounds -- better than using projected bbox coordinates because those can be null for projections like AlbersUsa
+				var bounds = d3.geoPath().projection(proj).bounds(layer_to_fit.geo()[0].data);
+
+				var bboxHeight = bounds[1][1]-bounds[0][1];
+				var bboxWidth = bounds[1][0]-bounds[0][0];
+
+				//track the aspect ratio of the map
+				aspect = Math.abs(bboxHeight/bboxWidth); //max lat becomes min due to svg coords
+
+				//track how the projected bounding box changes in size
+				//if(map_bounds==null){map_bounds = bounds}
+				//scale_change = [bounds[1][0]-map_bounds[1][0], bounds[1][1]-map_bounds[1][1]];
+			}
+			catch(e){
+				aspect = default_aspect; //reset to default;
+				//scale_change = [1, 1];
+				console.log(e);
+			}
+
+		}
+		else{
+			//console.log("no bounds set");
+		}
+
+		//set projection
+		projection = proj;
+
+		return map;
 	};
 
-	map.projection(null); //initialize the default projection
+	//initialize the default projection
+	map.projection(null); 
+
+	//dragging and zooming behavior
+	var drag_start_coords;
+	map_svg.call(d3.drag().on("drag", function(d){
+		var x = d3.event.x;
+		var y = d3.event.y;
+		
+		var delta_x = g_translate[0] + (x-drag_start_coords[0]);
+		var delta_y = g_translate[1] + (y-drag_start_coords[1]);
+
+		map.svg.attr("transform", "translate("+delta_x+","+delta_y+")");
+		//console.log(delta_x + ", " + delta_y);
+	}).on("start", function(d){
+		drag_start_coords = [d3.event.x, d3.event.y];
+	}).on("end", function(d){
+		var x = d3.event.x;
+		var y = d3.event.y;	
+		
+		//record the translate for use in subsequent drag events
+		g_translate[0] = g_translate[0] + (x-drag_start_coords[0]);
+		g_translate[1] = g_translate[1] + (y-drag_start_coords[1]);	
+
+		//determine the "relative center": for the point in the center of the current view, what is the relative position of that
+		//point in the full range of projected lon,lat; e.g. [0.5,0.5] is the center, [0.75, 0.25] is top right quadrant
+		var tx_center = [center[0]-g_translate[0], center[1]-g_translate[1]];
+		var width = center[0]*2*zoom_scalar;
+		var height = center[1]*2*zoom_scalar;
+		relative_center = [tx_center[0]/width, tx_center[1]/height]; //what position in [0,1] of map ranges is in center of view
+
+	}) );
+
+	var zoom_index = 0;
+	var zoom_scale = [1,2,4,8,14];
+	var zoom_colors = ["#ffffff", "#dddddd", "#bbbbbb", "#999999", "#777777"];
+	zoom_button.on("mousedown", function(){
+		d3.event.stopPropagation();
+		
+		zoom_index = (++zoom_index) % zoom_scale.length;
+		zoom_scalar = zoom_scale[zoom_index];
+		zoom_button.style("background-color", zoom_colors[zoom_index]);
+
+		//force a redraw to incorporate new zoom_scalar
+		map.draw(true, true);
+	});
 
 
 	//draw all layers
-	map.draw = function(resize_only){
+	map.draw = function(resize_only, force){
 		//before drawing set dimensions
-
-		//console.log("Have dimensions changed? " + (dimensions_changed ? "Yes" : "No"));
+		//console.log(aspect);
 		var dimensions_changed = map.set_dim().changed;
+		//console.log("Have dimensions changed since last draw? " + (dimensions_changed ? "Yes" : "No"));
 
 		//rescale projection, if necessary
-		//currently scale is set by the default projection or if a layer_to_fit is specified
+		//currently scale is set by first layer in the map -- projections are fit to it
 		//if the user wants to handle responsive projection then they should not make the map responsive
-		if(dimensions_changed){
-			if(fit_layer != null){
-				map.projection(projection, fit_layer);
-			}
-			else if(default_proj_in_use){
-				//note that the use could use default projection with a fit_layer
-				map.projection(null);
-			}
+		if(dimensions_changed || !!force){
+			//refit projection to dimensions using the first layer
+			map.projection(projection);
 		}
+
+
 
 		resize_only = arguments.length > 0 && !!resize_only;
 
@@ -1560,23 +1747,38 @@ function mapd(container){
 			layers[l].draw(resize_only);
 		}
 
+		//determine any translate needed
+		var new_width = center[0]*2*zoom_scalar;
+		var new_height = center[1]*2*zoom_scalar;
+
+		var center_this = [relative_center[0]*new_width, relative_center[1]*new_height];
+		g_translate[0] = center[0] - center_this[0];
+		g_translate[1] = center[1] - center_this[1];
+
+		map.svg.attr("transform", "translate("+g_translate[0]+","+g_translate[1]+")");
+
 		return map;
 	};
 
 	map.clear = function(){
-		projection = map.projection(null);
-		layers = []; //remove all internal layer data
-
+		layers = []; //remove all internal layer data -- do this before setting a projection again
+		
+		map.projection(null);
+		
 		//create new, blank svg
 		map.svg.remove();
 		map.svg = map_svg.append("g");
+
+		g_translate = [0,0];
+		relative_center = [0.5, 0.5];
+		zoom_scalar = 1;
 		
 		//when in use, wipe canvas too, reset legend
 
 		return map;
 	};
 
-	//enable/disable responsiveness
+	//enable/disable responsiveness -- enabled by default
 	var is_responsive = true;
 	map.responsive = function(make_responsive){
 		if(arguments.length==0){
@@ -1593,6 +1795,8 @@ function mapd(container){
 		return map;
 	};
 
+	//good to draw after a timeout to avoid expensive redrawing
+	//and to allow reflow/paints to take effect before setting dimensions and redrawing
 	var resize_timer;
 	window.addEventListener("resize", function(){
 		clearTimeout(resize_timer);
@@ -1602,7 +1806,6 @@ function mapd(container){
 			}, 250);
 		}
 	});
-
 
 	//make syncronous geo data available to layer
 	var geo_api = geo_api_sync();
@@ -1631,13 +1834,13 @@ function mapd(container){
 function tract_maps(container){
 
 	var wrap = d3.select(container);
-	var select = wrap.append("div");
-	var filter_wrap = wrap.append("div").classed("c-fix",true);
+	
 
-	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-					   .style("width","100%")
-                       .style("min-height","400px")
-                       .style("height","85vh");
+	var map_wrap = wrap.append("div").style("padding","0px")
+					   .style("border","0px solid #aaaaaa")
+					   .style("border-radius","5px")
+					   .style("background-color","transparent")
+					   .append("div");
 
 	var geoCache = {};
 	var topoCache = {};
@@ -1663,6 +1866,11 @@ function tract_maps(container){
 	}
 
 	var map = mapd(map_wrap.node());
+
+	var menu_wrap = map.menu();
+	var select = menu_wrap.append("div");
+	var filter_wrap = menu_wrap.append("div").classed("c-fix",true).style("padding","5px 0px 2em 0px");
+
 	var alldata;
 
 	function map_tract(geoj, topo){
@@ -1671,9 +1879,10 @@ function tract_maps(container){
 		var tract_layer = map.layer().geo(geoj);
 
 		if(!!alldata){
-			tract_layer.data(alldata, "tr").set_aes();
 
-			var cols = ['#cb181d','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
+			tract_layer.data(alldata, "tr");
+
+			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
 			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 
 			build_filters(tract_layer);
@@ -1742,7 +1951,7 @@ function tract_maps(container){
 
 		var projection = tract_layer.get_albers();
 
-		map.projection(projection, tract_layer);
+		map.projection(projection);
 
 		map.draw();
 	}	
@@ -1815,8 +2024,7 @@ function subscription_bubble_map(container){
 	var wrap = d3.select(container);
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-                       .style("min-height","400px")
-                       .style("height","85vh");
+                       .style("min-height","400px");
 
 	var map = mapd(map_wrap.node());
 	//var alldata;
@@ -1834,9 +2042,9 @@ function subscription_bubble_map(container){
 
 		var state_layer = map.layer().geo(stategeo);
 		var projection = d3.geoAlbersUsa();
-		map.projection(projection, state_layer);
+		map.projection(projection);
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa").set_aes();
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
 
 		metro_layer.aes.fill("pcat_10x1_5");
 
@@ -1854,8 +2062,7 @@ function access_bubble_map(container){
 	var wrap = d3.select(container);
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-                       .style("min-height","400px")
-                       .style("height","85vh");
+                       .style("min-height","400px");
 
 	var map = mapd(map_wrap.node());
 	//var alldata;
@@ -1873,9 +2080,9 @@ function access_bubble_map(container){
 
 		var state_layer = map.layer().geo(stategeo);
 		var projection = d3.geoAlbersUsa();
-		map.projection(projection, state_layer);
+		map.projection(projection);
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa").set_aes();
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
 
 		metro_layer.aes.fill("share_access");
 

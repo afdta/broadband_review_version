@@ -24,6 +24,7 @@ writeLines(toJSON(data100, factor="string", na="null", digits=5),
 
 #write out Akron
 akronchi <- data[data$cbsa %in% c("10420","16980"), c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
+names(akronchi) <- c("tr","pl","av","su","pop","ba","pov","ki")
 writeLines(toJSON(akronchi, factor="string", na="null", digits=5), 
            con="/home/alec/Projects/Brookings/broadband/data/akron_chicago.json")
 

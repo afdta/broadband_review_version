@@ -6,14 +6,13 @@ import mapd from "../../../js-modules/maps/mapd.js";
 export default function tract_maps(container){
 
 	var wrap = d3.select(container);
-	var select = wrap.append("div");
-	var filter_wrap = wrap.append("div").classed("c-fix",true);
+	
 
-	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-					   .style("width","100%")
-                       .style("min-height","400px")
-                       .style("height","85vh")
-                       ;
+	var map_wrap = wrap.append("div").style("padding","0px")
+					   .style("border","0px solid #aaaaaa")
+					   .style("border-radius","5px")
+					   .style("background-color","transparent")
+					   .append("div");
 
 	var geoCache = {};
 	var topoCache = {};
@@ -39,6 +38,11 @@ export default function tract_maps(container){
 	}
 
 	var map = mapd(map_wrap.node());
+
+	var menu_wrap = map.menu();
+	var select = menu_wrap.append("div");
+	var filter_wrap = menu_wrap.append("div").classed("c-fix",true).style("padding","5px 0px 2em 0px");
+
 	var alldata;
 
 	function map_tract(geoj, topo){
@@ -47,9 +51,10 @@ export default function tract_maps(container){
 		var tract_layer = map.layer().geo(geoj);
 
 		if(!!alldata){
-			tract_layer.data(alldata, "tr").set_aes();
 
-			var cols = ['#cb181d','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
+			tract_layer.data(alldata, "tr");
+
+			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
 			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 
 			build_filters(tract_layer);
@@ -120,7 +125,7 @@ export default function tract_maps(container){
 
 		var projection = tract_layer.get_albers();
 
-		map.projection(projection, tract_layer);
+		map.projection(projection);
 
 		map.draw();
 	};	
