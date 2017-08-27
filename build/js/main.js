@@ -2,6 +2,7 @@ import dir from "../../../js-modules/rackspace.js";
 import tract_maps from "./tract_maps.js"
 import subscription_bubble_map from "./subscription_bubble_map.js";
 import access_bubble_map from "./access_bubble_map.js";
+import interventions from './interventions.js';
 
 //main function
 function main(){
@@ -40,6 +41,12 @@ function main(){
     var tract_map_wrap = wrap.append("div");
     tract_map_wrap.append("h3").text("Subscription tract map");
     tract_maps(tract_map_wrap.node());
+
+    var inter = interventions();
+    var inter_wrap = wrap.append("div");
+    var inter_federal = inter_wrap.append("div");
+    
+    inter.grid(inter_federal.node());
 
   }
 
