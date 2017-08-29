@@ -820,7 +820,7 @@ function layer(){
 			delete aes_mappings[attr];
 			return L;
 		}
-		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, r:1, cx:1, cy:1}){
+		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, cx:1, cy:1}){
 			aes_mappings[attr] = {map:attr_mapper};
 			return L;
 		}
