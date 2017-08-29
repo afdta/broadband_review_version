@@ -183,18 +183,19 @@ function metro_select(){
 										  .style("display","inline-block")
 										  .style("margin","0em")
 										  .style("line-height","1em")
-										  .style("font-size","0.8em")
-										  .style("padding","0px 0px 0px 6px")
-										  .style("text-transform","uppercase");
+										  .style("font-size","0.85em")
+										  .style("padding","0px 0px 6px 6px")
+										  .style("text-transform","uppercase")
+										  .style("color","#555555");
 
 		var select = wrap.append("select").style("display","block")
 										  .style("margin","0px 0px 0px 0px")
 										  .style("line-height","1.65em")
-										  .style("font-size","1em")
-										  .style("padding","2px 5px 2px 5px")
-										  .style("background","transparent")
-										  .style("max-width","100%")
-										  .style("outline","none");
+										  .style("font-size","1rem")
+										  .style("padding","4px 5px 4px 5px")
+										  //.style("background","transparent")
+										  .style("max-width","100%");
+										  //.style("outline","none");
 
 		this.node = select.node();
 
@@ -536,6 +537,7 @@ function aesthetics(data){
 		return aes;
 	};
 
+	//to do: implement
 	var aes_radius = function(variable){
 		var distribution = distro(variable);
 
@@ -547,10 +549,13 @@ function aesthetics(data){
 		
 	};
 
+	//to do: implement -- returned object must have a map method that takes a record and returns a value
+	//map method must hande null and undefined records
 	var aes_x = function(variable){
 
 	};
 
+	//to do: implement
 	var aes_y = function(variable){
 
 	};
@@ -1105,7 +1110,7 @@ function layer(){
 		    .center([0,centerY])
 		    .parallels([parallel0, parallel1]);
 
-	};
+	};	
 
 	//draw the layer
 	L.draw = function(resize_only){
@@ -1113,69 +1118,71 @@ function layer(){
 		var path = d3.geoPath().projection(proj);
 
 		//aesthetic mapping, yes or no?
-		var apply_aesthetics = (arguments.length==0 || !resize_only);
+		var apply_all = (arguments.length==0 || !resize_only);
 
-		
-		//default aesthetics
+		//methods that take in the geo object data, return record from lookup -- draw only accepts geojson now, no longer arrays of points
+		var get_record = function(d){return lookup[d.properties.geo_id]}; 
+
+		//default, read-only aesthetics
 		var default_aes = {
 			point:{
 				"r":10,
 				"stroke":"#efefef",
 				"fill":"#efefef",
-				"cx":function(feature){return proj(feature.geometry.coordinates)[0]},
-				"cy":function(feature){return proj(feature.geometry.coordinates)[1]}
+				"cx": function(feature){return proj(feature.geometry.coordinates)[0]},
+				"cy": function(feature){return proj(feature.geometry.coordinates)[1]}
 			},
 			poly:{
 				"stroke":"#aaaaaa",
-				"fill":"#efefef",
-				"d":path
+				"fill": "#efefef",
+				"d": path
 			}
 		};
 
-		//methods that take in the geo object data, return record from lookup -- draw only accepts geojson now, no longer arrays of points
-		var get_record = function(d){return lookup[d.properties.geo_id]}; 
+		var resize_props = {"r":1, "cx":1, "cy":1, "d":1};
 
 		//set aesthetics
+		//to do: parse this out more appropriately -- only r, cx, cy, and d should get redrawn on reisze
 		var apply_aes = function(selection, point_or_poly){
 
 			var aes_defaults = default_aes[point_or_poly]; 
 
 			//apply defaults, based on geography only
 			for(var da in aes_defaults){
-				if(aes_defaults.hasOwnProperty(da) && !aes_mappings.hasOwnProperty(da)){
+				if(aes_defaults.hasOwnProperty(da) && !aes_mappings.hasOwnProperty(da) && 
+					(apply_all || resize_props.hasOwnProperty(da) ) ){
 					//console.log("Applying attr: "+da);
 					//if da is a valid default and has not been registered by user as custom aes, apply it to selection
 					selection.attr(da, aes_defaults[da]);
 				}
 			}
 
-			//now loop through user-specified aesthetics if we are applying aesthetics on this draw
-			if(apply_aesthetics){
-				for(var a in aes_mappings){
-					if(aes_mappings.hasOwnProperty(a)){
-						if(typeof aes_mappings[a].map === "function"){
-							selection.attr(a, function(d,i){
-								//data record for given feature -- may be null or undefined
-								var record_in_data = get_record(d);
+			//now loop through user-specified aesthetics if we are applying all aesthetics on this draw
+			for(var a in aes_mappings){
+				if(aes_mappings.hasOwnProperty(a) && (apply_all || resize_props.hasOwnProperty(a) ) ){
+					if(typeof aes_mappings[a].map === "function"){
+						selection.attr(a, function(d,i){
+							//data record for given feature -- may be null or undefined
+							var record_in_data = get_record(d);
 
-								//missing values get passed to function as null
-								if(typeof record_in_data === "undefined"){
-									record_in_data = null;
-								}
+							//missing values get passed to function as null
+							if(typeof record_in_data === "undefined"){
+								record_in_data = null;
+							}
 
-								//all aes methods have a map method that take data record and return aesthetic value
-								return aes_mappings[a].map.call(d, record_in_data);
-							});
-						}
-						else{
-							//apply attribute as a constant
-							selection.attr(a, aes_mappings[a].map);
-						}
+							//all aes methods have a map method that take data record and return aesthetic value
+							return aes_mappings[a].map.call(d, record_in_data);
+						});
 					}
+					else{
+						//apply attribute as a constant
+						selection.attr(a, aes_mappings[a].map);
+					}
+					//console.log("Applying custom attr: "+a);
 				}
 			}
 
-			//apply any styles
+			//apply any styles always, for now
 			for(var s in style_mappings){
 				if(style_mappings.hasOwnProperty(s)){
 					if(typeof style_mappings[s].map === "function"){
@@ -1406,8 +1413,8 @@ function mapd(root_container){
 	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%").style("position","relative").style("z-index","2");
 	var map_group = map_svg.append("g");
 
-	outer_wrap.append("div").style("width","50%").style("height","50%").style("position","absolute")
-							.style("border","1px solid orange").style("top","0px").style("z-index","10");
+	//outer_wrap.append("div").style("width","50%").style("height","50%").style("position","absolute")
+	//						.style("border","1px solid orange").style("top","0px").style("z-index","10");
 
 	var tooltip_wrap = outer_wrap.append("div")
 								 .style("width","100px")
@@ -1418,18 +1425,37 @@ function mapd(root_container){
 								 .style("left","-100px")
 								 .style("visibility","hidden");
 
-	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","25px").style("right","25px")
-												//.style("width","25px").style("height","100px")
-												.style("background-color","#fffffff")
+	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","30%").style("left","25px")
+												.style("width","70px").style("height","50px")
 												.style("z-index","10")
 												.style("cursor","pointer")
-												.style("padding","7px 10px")
-												.style("border","1px solid #aaaaaa")
-												.style("border-radius","5px");
-		zoom_button.append("p")
-					.text("zoom")
-					.style("user-select", "none")
-					.style("margin","0px");
+												.style("padding","10px 15px")
+												.style("border","1px solid #eeeeee")
+												.style("border-radius","5px")
+												.style("background-color","rgba(255,255,255,0.7)");
+
+	var zoom_svg = zoom_button.append("svg").attr("width","40px").attr("height","30px")
+									.attr("viewBox","0 0 40 30");
+	var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1050)")
+											.attr("stroke","#0d73d6")
+											.attr("stroke-linecap","round")
+											.attr("fill","none");	
+
+		zoom_in_g.append("path").attr("stroke-width","4")
+					.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
+		zoom_in_g.append("path").attr("stroke-width","2")
+					.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+
+	var zoom_out_g = zoom_svg.append("g").attr("transform","translate(0,-1050)")
+											.attr("stroke","#dc2a2a")
+											.attr("stroke-linecap","round")
+											.attr("fill","none")
+											.style("visibility","hidden");	
+
+		zoom_out_g.append("path").attr("stroke-width","4")
+					.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
+		zoom_out_g.append("path").attr("stroke-width","2")
+					.attr("d", "m10.856 1061.7h9.0873");
 
 	//public map object								 
 	var map = {
@@ -1716,7 +1742,16 @@ function mapd(root_container){
 		
 		zoom_index = (++zoom_index) % zoom_scale.length;
 		zoom_scalar = zoom_scale[zoom_index];
-		zoom_button.style("background-color", zoom_colors[zoom_index]);
+
+		if(zoom_index == zoom_scale.length-1){
+			zoom_in_g.style("visibility","hidden");
+			zoom_out_g.style("visibility","visible");
+		}
+		else{
+			zoom_out_g.style("visibility","hidden");
+			zoom_in_g.style("visibility","visible");
+		}
+		//zoom_button.style("background-color", zoom_colors[zoom_index]);
 
 		//force a redraw to incorporate new zoom_scalar
 		map.draw(true, true);
@@ -1771,6 +1806,8 @@ function mapd(root_container){
 
 		g_translate = [0,0];
 		relative_center = [0.5, 0.5];
+		
+		zoom_index = 0; //used to determine (ordinal) level of zoom
 		zoom_scalar = 1;
 		
 		//when in use, wipe canvas too, reset legend
@@ -1876,7 +1913,7 @@ function tract_maps(container){
 	function map_tract(geoj, topo){
 		map.clear();
 
-		var tract_layer = map.layer().geo(geoj);
+		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
 
 		if(!!alldata){
 
@@ -2112,15 +2149,15 @@ function interventions(){
 	policy.costs = 'Adopt policies to reduce deployment costs.{p}Today, high-speed wireline service remains the most dependable way to get people connected to the digital economy. For the foreseeable future, then, it will still be vital to get more Americans subscribed to in-home broadband connections. To do so in an era of limited resources, Congress and executive agencies should give immediate attention to reducing deployment costs. One promising way to do so—if politics and industry can align on implementation—is through "dig once" policies, which allow for installing conduit or fiber optic cables during any right-of-way construction project (e.g., road construction).{f} Similar debates and alignment will need to take place regarding pole attachments and the potential for "one touch make ready" policies, which simplify the steps needed to create a new attachment on poles that may already be in use by other telecommunications or cable providers. For example, a one touch make ready policy might direct pole users to come together and select a common contractor for adjusting attachments as needed, rather than sending separate crews for each provider.{f}';
 
 	footnotes.costs = ['For a primer on the "dig once" congressional state of play at time of publication, see Jon Brodkin, <a href="https://arstechnica.com/information-technology/2017/03/nationwide-fiber-proposed-law-could-add-broadband-to-road-projects/" target="_blank">\'Dig Once\' Bill Could Bring Fiber Internet to Much of the US"</a>, Ars Technica, March 22, 2017.', 
-	'For a supportive description of "one touch make ready" policy, see Next Century Cities, <a href="http://nextcenturycities.org/2017/02/01/one-touch-make-ready-fact-sheet/" target="_blank"> "One Touch Make Ready Fact Sheet", 2017; or Jon Brodkin, "Verizon Supports Controversial Rule That Could Help Google Fiber Expand," Ars Technica, June 16, 2017. However, some established internet service providers have sued over initial ordinances in Louisville, Ky. and Nashville, Tenn. See, e.g., Blair Levin, "Next Battlefield in the Game of Gigs: Cities and Polls" (Washington: Brookings Institution, 2016).'];
+	'For a supportive description of "one touch make ready" policy, see Next Century Cities, <a href="http://nextcenturycities.org/2017/02/01/one-touch-make-ready-fact-sheet/" target="_blank">"One Touch Make Ready Fact Sheet"</a>, 2017; or Jon Brodkin, "Verizon Supports Controversial Rule That Could Help Google Fiber Expand," Ars Technica, June 16, 2017. However, some established internet service providers have sued over initial ordinances in Louisville, Ky. and Nashville, Tenn. See, e.g., Blair Levin, "Next Battlefield in the Game of Gigs: Cities and Polls" (Washington: Brookings Institution, 2016).'];
 
 	policy.fiveg = 'Consider the role of evolving wireless technology and business practices.{p}Congress and the FCC must continue to craft policy and market interventions for the 12.7 million rural residents without broadband service, including many residents on tribal lands. The Connect America Fund will continue to make vital investments to advance availability for these households, but leaders should both consider the potential for future satellite technology to reduce public investment needs and actively review whether the quality of current Connect America Fund wireline investments will meet rural recipients\' long-term needs.{p}At the same time, policy leaders should consider how the build-out of new wireless networks—including proposed fifth-generation standards (5G)—and unlimited data plans within current networks will impact unserved populations in both rural and metropolitan communities.{p}Through small cell technology, 5G promises to offer wireless service to large geographic areas at speeds significantly faster than current networks. 5G will still require a wired backbone to connect the small cell transmission points, but it could eliminate the need for wired connections to each home.{f} However, questions remain whether in-home consumers would make the switch, and dependability relative to current wired offerings will be a major sticking point. Given that state and local decisions will determine how such policies are rolled out and where small cell transmission points will be located, local political dynamics and competing agendas could conceivably stymie efforts to close the digital divide through 5G deployment. There is a real opportunity for federal policy to create consistent guidelines for local governments and private firms, but those must both protect digital equality and local governments\' independence.{p}Likewise, unlimited data plans using current 4G LTE networks already enable many individuals to access broadband speeds in neighborhoods underserved by wireline. However, these services will only unlock broad-based economic benefits if all individuals can afford the service and if they connect to more productive devices, specifically desktops and laptops. Since lower-income individuals own computing devices and subscribe to wireless data plans at lower rates, these service improvements will not necessarily reach the entire population. Congressional and agency officials should debate whether other complementary programs, including device or service vouchers, are worthwhile complements to service changes by private wireless service providers.';
 	footnotes.fiveg = ['At the time of publication, there is still no current established standard for fifth-generation wireless networks.'];
 
-	policy.stopgaps = 'Move beyond stopgaps and pilots to more sustained adoption-focused funding streams and programming.{p}Broadband Technology Opportunities Program (BTOP) grants from the National Telecommunications and Information Administration (NTIA) enabled recipients to support adoption via outreach and training, but that program was funded only temporarily under the American Recovery and Reinvestment Act of 2010.{f} The Obama administration\'s ConnectHome initiative targeted adoption among low-income families with school-age children living in public housing, but the effort was only an unfunded pilot.{f} And, as noted above, the FCC and NTIA do not formalize adoption objectives within their strategic plans.{f} The only sustained direct support to individuals is the Lifeline program, which the FCC recently expanded to offer direct broadband pricing support.{f} Moving forward, Congress must work with the FCC, the NTIA, and other relevant agencies to establish sustained adoption-focused programs. That should include targeted pricing support where possible, both for monthly service like the FCC Lifeline program and potential purchase credits for equipment. Ideally, targeting support to low-income families with school-age children could ensure those families bring the digital classroom home. Similarly important are sustained support for training programs and capacity support in low-adoption communities. While the Broadband Opportunity Council has ended, the Broadband Interagency Working Group now meets in its place, with the goal of improving coordination among federal partners and programs, reducing regulatory hurdles that impede deployment, and raising awareness of available federal resources at the community-level.{f} In addition, NTIA\'s BroadbandUSA Connectivity Assessment Tool provides a set of tools, resources, and technical assistance to support communities as they work to advance local broadband availability and adoption policies. The evolution and sustainability of this resource is contingent on continued funding from the current administration.{f} The federal government can also help scale successful interventions by assembling and distributing local best practices, a recommendation echoed by the Information Technology and Innovation Foundation.{f} Regularly updating NTIA\'s Adoption Toolkit, first published in 2013, is one possible approach, and one that would also require sustained funding.{f}';
+	policy.stopgaps = 'Move beyond stopgaps and pilots to more sustained adoption-focused funding streams and programming.{p}Broadband Technology Opportunities Program (BTOP) grants from the National Telecommunications and Information Administration (NTIA) enabled recipients to support adoption via outreach and training, but that program was funded only temporarily under the American Recovery and Reinvestment Act of 2010.{f} The Obama administration\'s ConnectHome initiative targeted adoption among low-income families with school-age children living in public housing, but the effort was only an unfunded pilot.{f} And, as noted above, the FCC and NTIA do not formalize adoption objectives within their strategic plans.{f} The only sustained direct support to individuals is the Lifeline program, which the FCC recently expanded to offer direct broadband pricing support.{f}{p}Moving forward, Congress must work with the FCC, the NTIA, and other relevant agencies to establish sustained adoption-focused programs. That should include targeted pricing support where possible, both for monthly service like the FCC Lifeline program and potential purchase credits for equipment. Ideally, targeting support to low-income families with school-age children could ensure those families bring the digital classroom home. Similarly important are sustained support for training programs and capacity support in low-adoption communities. While the Broadband Opportunity Council has ended, the Broadband Interagency Working Group now meets in its place, with the goal of improving coordination among federal partners and programs, reducing regulatory hurdles that impede deployment, and raising awareness of available federal resources at the community-level.{f} In addition, NTIA\'s BroadbandUSA Connectivity Assessment Tool provides a set of tools, resources, and technical assistance to support communities as they work to advance local broadband availability and adoption policies. The evolution and sustainability of this resource is contingent on continued funding from the current administration.{f} The federal government can also help scale successful interventions by assembling and distributing local best practices, a recommendation echoed by the Information Technology and Innovation Foundation.{f} Regularly updating NTIA\'s Adoption Toolkit, first published in 2013, is one possible approach, and one that would also require sustained funding.{f}';
 
 	footnotes.stopgaps = ['For the most recent information regarding the BTOP program, see the <a href="https://www.ntia.doc.gov/category/broadband-technology-opportunities-program" target="_blank">quarterly progress reports.',
-	'The White House\'s ConnectHome fact sheet can be found <a href="https://obamawhitehouse.archives.gov/the-press-office/2015/07/15/fact-sheet-connecthome-coming-together-ensure-digital-opportunity-all." target="_blank">here</>.',
+	'The White House\'s ConnectHome fact sheet can be found <a href="https://obamawhitehouse.archives.gov/the-press-office/2015/07/15/fact-sheet-connecthome-coming-together-ensure-digital-opportunity-all" target="_blank">here</>.',
 	'Government Accountability Office (GAO), "Intended Outcomes and Effectiveness of Efforts to Address Adoption Barriers Are Unclear," GAO-15-473, 2015. Note that NTIA\'s position in response to the GAO report is that, because its technical assistance role to communities is purely advisory, an outcome-based adoption metric would not be appropriate.',
 	'For the full library of Lifeline-related information, see <a href="https://www.fcc.gov/general/lifeline-program-low-income-consumers" target="_blank">https://www.fcc.gov/general/lifeline-program-low-income-consumers</a>.',
 	'The Broadband Opportunity Council\'s website is <a href="https://www.ntia.doc.gov/category/broadband-opportunity-council" target="_blank">https://www.ntia.doc.gov/category/broadband-opportunity-council</a>; the Broadband Interagency Working Group\'s website is <a href="https://www.ntia.doc.gov/category/broadband-interagency-working-group" target="_blank">https://www.ntia.doc.gov/category/broadband-interagency-working-group</a>.',
@@ -2146,7 +2183,7 @@ function interventions(){
 
 	footnotes.levers = ['FCC, <a href="https://apps.fcc.gov/edocs_public/attachmatch/DOC-341210A2.pdf" target="_blank">"Summary of FCC Commissioner Ajit Pai\'s Digital Empowerment Agenda,"</a> 2016.'];
 
-	policy.priorities = 'Collect and reflect on data to inform local priorities.{p}National surveys of broadband availability and adoption do an excellent job conveying the full extent of broadband challenges, but they\'re often too aggregated to help design specific policy reforms. Given that broadband adoption is ultimately a household-by-household decision, blanket policies may not maximize impact. Effectively addressing the digital divide requires that policymakers, service providers, and advocates understand how policies and resources "go to ground" at the local level, and align federal, state, and local interventions accordingly.{p}For instance, a number of issues, such as pricing, can influence in-home adoption rates. The Pew Research Center\'s most recent home broadband report finds that cost—both in terms of a subscription and computing equipment—is the primary reason 43 percent of survey respondents did not adopt in-home broadband.{f} Stakeholder interviews by the Government Accountability Office (GAO) confirmed similar issues with affordability.{f} At an even more fundamental level, GAO interviews and NTIA research finds that many Americans continue to question the relevance of the internet or perceive it as unsafe.{f} Even for those with the financial means and understanding of broadband\'s benefits, a lack of digital literacy may impede adoption.{f} While neighborhood-level performance indicators like those in this paper are a first-order requirement to benchmark local need, to fully understand the factors underlying the outcomes presented here public officials should go a step further and survey their neighborhoods on local conditions and attitudes related to broadband. For example, the City of Seattle runs a technology access and adoption survey every four years under its Digital Equity Initiative; the survey includes both demographic details and specific broadband performance measures.{f} The Minnesota Office of Broadband Development puts out annual reports on the state\'s availability and adoption progress.{f} Such surveys are especially important in rural communities, where bridging availability gaps may be expensive and should require clear articulation of bandwidth needs based on local economic activity.';
+	policy.priorities = 'Collect and reflect on data to inform local priorities.{p}National surveys of broadband availability and adoption do an excellent job conveying the full extent of broadband challenges, but they\'re often too aggregated to help design specific policy reforms. Given that broadband adoption is ultimately a household-by-household decision, blanket policies may not maximize impact. Effectively addressing the digital divide requires that policymakers, service providers, and advocates understand how policies and resources "go to ground" at the local level, and align federal, state, and local interventions accordingly.{p}For instance, a number of issues, such as pricing, can influence in-home adoption rates. The Pew Research Center\'s most recent home broadband report finds that cost—both in terms of a subscription and computing equipment—is the primary reason 43 percent of survey respondents did not adopt in-home broadband.{f} Stakeholder interviews by the Government Accountability Office (GAO) confirmed similar issues with affordability.{f} At an even more fundamental level, GAO interviews and NTIA research finds that many Americans continue to question the relevance of the internet or perceive it as unsafe.{f} Even for those with the financial means and understanding of broadband\'s benefits, a lack of digital literacy may impede adoption.{f}{p}While neighborhood-level performance indicators like those in this paper are a first-order requirement to benchmark local need, to fully understand the factors underlying the outcomes presented here public officials should go a step further and survey their neighborhoods on local conditions and attitudes related to broadband. For example, the City of Seattle runs a technology access and adoption survey every four years under its Digital Equity Initiative; the survey includes both demographic details and specific broadband performance measures.{f} The Minnesota Office of Broadband Development puts out annual reports on the state\'s availability and adoption progress.{f} Such surveys are especially important in rural communities, where bridging availability gaps may be expensive and should require clear articulation of bandwidth needs based on local economic activity.';
 
 	footnotes.priorities = ['John Horrigan and Maeve Duggan, "Home Broadband 2015" (Washington: Pew Research Center, 2015).',
 	'Government Accountability Office (GAO), "Intended Outcomes and Effectiveness of Efforts to Address Adoption Barriers Are Unclear,"" GAO-15-473, 2015.',
@@ -2168,23 +2205,23 @@ function interventions(){
 
 	policy.regionalism = 'Think locally, act regionally{p}Finally, how communities navigate jurisdictional boundaries will determine how effectively and efficiently they are able to close their availability and adoption gaps. Subpar broadband adoption in a handful of neighborhoods can limit an entire region\'s ability to grow its economy or switch to digital government platforms. As such, digital skills campaigns cannot just be core city programming—they should have extensive regional reach.  NTIA\'s Adoption Toolkit touches on many of these approaches and includes applied examples from across the country.{f}';
 
-	footnotes.regionalism = ['National Telecommunications and Information Administration (NTIA), "NTIA Broadband Adoption Toolkit,"" 2013.'];	
+	footnotes.regionalism = ['National Telecommunications and Information Administration (NTIA), "NTIA Broadband Adoption Toolkit,"" 2013.'];
 
 	//parse
 	var policy2 = {};
 	for(var p in policy){
 		if(policy.hasOwnProperty(p)){
 			var split0 = policy[p].split("{f}");
+
 			var footnoted = "";
 			split0.forEach(function(d,i){
-				footnoted = footnoted + d + "<sup>" + (i+1) + "</sup>";
+				//don't footnote the last substring. if last character is footnote, then the last element in the array will be blank string, ""
+				var super_note = (i < (split0.length-1)) ? "<sup>" + (i+1) + "</sup>" : "";
+				footnoted = footnoted + d + super_note;
 			}); 
-			var split1 = footnoted.split("{p}");
-			policy2[p] = "<p>" + split1.join("</p><p>") + "</p>";
+			policy2[p] = footnoted.split("{p}");
 		}
 	}
-
-	console.log(policy2);
 
 	var body_wrap = d3.select("#metro-interactive");
 	var show = function(id){
@@ -2194,20 +2231,18 @@ function interventions(){
 			.style("width","100%")
 			.style("height","100%")
 			.style("z-index","1000")
-			.style("background-color","rgba(5, 55, 105, 0)")
+			.style("background-color","rgba(0, 0, 0, 0)")
 			.style("top","0px")
-			.style("left","0px");
-		fixed.transition()
-			.style("background-color","rgba(5, 55, 105, 0.85)")
-			.style("background-color","rgba(0, 0, 0, 0.75)")
-			;
+			.style("left","0px")
+			.classed("makesans",true);
 
 		var table = fixed.append("div")
 			.style("display","table")
-			.style("max-width","900px")
-			.style("width","100%")
+			.style("max-width","1000px")
+			.style("width","90%")
 			.style("height","100%")
-			.style("margin","1em auto");
+			.style("margin","1em auto")
+			.style("opacity","0");
 		var row = table.append("div")
 			.style("display","table-row");
 		var cell = row.append("div")
@@ -2220,57 +2255,84 @@ function interventions(){
 			.style("position","relative")
 			.style("display","block");
 
-		/*var svg_ribbon = box_wrap.append("div")
+		var ribbon_cols = ["#0d73d6"];
+		var svg_ribbon = box_wrap.append("div")
 								 .style("height","10px")
 								 .append("svg").attr("width","100%")
 								 .attr("height","100%")
 								 .style("x","0px")
 								 .style("y","0px")
 								.style("display","block")
-								.selectAll("rect").data([1,2,3,4,5,6,7]).enter()
-								.append("rect").attr("width",(100/7)+"%").attr("height","100%").attr("x", function(d,i){return (i*(100/7))+"%"})
+								.selectAll("rect").data(ribbon_cols).enter()
+								.append("rect").attr("width",(100/(ribbon_cols.length))+"%")
+								.attr("height","100%").attr("x", function(d,i){return (i*(100/7))+"%"})
 								.attr("fill", function(d,i){
-									return cols(d);
-								});*/
+									return ribbon_cols[i];
+								});
 
-		var box = box_wrap.append("div").classed("makesans",true)
-			.style("background-color","rgba(250, 250, 250, 1)")
-			.style("position","relative")
-			.style("padding","1em 1em 1em 1em")
-			.style("line-height","1.4em")
-			.style("overflow","auto")
-			.style("max-height","85vh");
-
-			box.selectAll("p")
-				.data(policy2[id].text)
-				.enter()
-				.append("p")
-				.html(function(d,i){return d})
-				.style("font-weight", function(d,i){
-					return i==0 ? "bold" : "normal";
-				})
-				.style("padding","0em 1em 1em 1em")
-				.style("margin","1em 0em 1em 0em");
 
 		var x_height = 30;
 		var x_width = x_height;
+
 		var xsvg = box_wrap.append("div")
-			   .style("cursor","pointer")
-			   .classed("make-sans",true)
-			   .style("position","absolute")
-			   .style("top","-"+(x_height+5)+"px")
-			   .style("right","5px")
-			   .style("width",x_width+"px")
-			   .style("height",x_height+"px")
-			   .append("svg")
-			   .attr("width","100%").attr("height","100%");
+		   .style("cursor","pointer")
+		   .classed("make-sans",true)
+		   .style("position","absolute")
+		   //.style("top","-"+(x_height+5)+"px")
+		   .style("top",(x_width)+"px")
+		   .style("right",x_width+"px")
+		   .style("width",x_width+"px")
+		   .style("height",x_height+"px")
+		   .style("z-index","10")
+		   .append("svg")
+		   .attr("width","100%").attr("height","100%");
 
 			xsvg.append("line").attr("x1","20%").attr("x2","80%").attr("y1","20%").attr("y2","80%");
 			xsvg.append("line").attr("x1","20%").attr("x2","80%").attr("y1","80%").attr("y2","20%");
 
-			xsvg.selectAll("line").attr("stroke","#ffffff")
+			xsvg.selectAll("line").attr("stroke","#0d73d6")
 									.attr("stroke-width","5px");
 		   
+
+		var box = box_wrap.append("div").classed("makesans reading",true)
+			.style("background-color","rgba(250, 250, 250, 1)")
+			.style("position","relative")
+			.style("padding","1rem")
+			.style("line-height","1.4em")
+			.style("overflow","auto")
+			.style("max-height","85vh")
+			.style("max-width","1000px")
+			.style("z-index","5");
+
+
+			box.selectAll("p").data(policy2[id]).enter().append("p")
+						.html(function(d){return d})
+						.style("padding",function(d,i){
+							return i==0 ? "0.5rem " + (x_width+20)+"px" + " 0rem 1rem" : "0rem 1rem 0rem 1rem";
+						})
+						.style("margin","1rem 0em 1.5rem 0em")
+						.style("font-weight",function(d,i){return i==0 ? "bold" : "normal"})
+						.style("font-size",function(d,i){return i==0 ? "1.5em" : null})
+						//.style("font-size", function(d,i){return i==0} ? "1.5em" : "1em")
+						;
+
+		if(footnotes[id].length > 0){
+			box.append("div").style("height","0.5em").style("width","30%")
+				  .style("border-top","1px solid #aaaaaa")
+				  .style("margin","0px 0px 0px 0.75rem");
+			var footnote_wrap = box.append("div").style("margin","1rem");
+			var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[id])}).enter().append("p")
+											.html(function(d,i){
+												var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+												return super_note + d;
+											});
+		}
+
+		//show
+		fixed.transition()
+			.style("background-color","rgba(0, 0, 0, 0.75)")
+			;
+		table.transition().style("opacity","1");		
 
 		box.on("mousedown", function(d,i){
 			d3.event.stopPropagation();
@@ -2291,21 +2353,111 @@ function interventions(){
 															federal.map(function(d){return {id:d, text:policy2[d]}}); 
 
 		var row = wrap.selectAll("div").data([data])
-							.enter().append("div").classed("c-fix",true).style("margin","0em 0em");
+							.enter().append("div")
+							.classed("c-fix",true)
+							.style("margin","0em 0em");
 
 		var tiles = row.selectAll("div.subway-tile").data(function(d){return d})
 							.enter().append("div").classed("subway-tile",true);
 
 		var headers = tiles.append("div").classed("tile-header",true);
-		var dots = headers.append("div").classed("dot",true).style("cursor","pointer");
+		var dots = headers.append("div").classed("dot",true);
 		//var dot_labels = dots.append("p").text(function(d){return d});
 
-		dots.on("mousedown", function(d){show(d.id);});
 
 		var content = tiles.append("div").classed("tile-content reading",true);
-		var text = content.append("p").html(function(d){return d.text});
+		var text = content.selectAll("p").data(function(d){return d.text}).enter().append("p")
+							.html(function(d){return d})
+							.style("font-weight",function(d,i){return i==0 ? "bold" : "normal"})
+							.style("font-size",function(d,i){return i==0 ? "1.15em" : null});
+		
+
+		content.each(function(d,i){
+			var thiz = d3.select(this);
+			if(footnotes[d.id].length > 0){
+				thiz.append("div").style("height","0.5em").style("width","30%")
+								  .style("border-top","1px solid #aaaaaa")
+								  ;
+
+				var footnote_wrap = thiz.append("div");
+				var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[d.id])}).enter().append("p")
+												.html(function(d,i){
+													var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+													return super_note + d;
+												});
+			}
+		});
+
+		//more info available...
+
+		tiles.append("div").classed("more-info-available",true);
+
+		var expandable = {};
+		var sizeCheck = function(){
+
+			content.each(function(d,i){
+				var bottom0 = this.parentNode.getBoundingClientRect().bottom;
+				var bottom1 = this.getBoundingClientRect().bottom;
+				expandable[(i+"")] = bottom1 > bottom0;
+			});
+
+			tiles.classed("click-for-more-info", function(d,i){
+					if(expandable[(i+"")]){
+						return true;
+					}
+					else{
+						return false;
+					}				
+				});
+			
+			var uup = tiles.selectAll("div.zoomdiv").data(function(d,i){
+				return expandable[(i+"")] ? [1] : [];
+			});
+			uup.exit().remove();
+			var uen = uup.enter().append("div").classed("zoomdiv",true);
+				uen.append("svg");
+				uen.style("position","absolute")
+					  .style("bottom","2em")
+					  .style("right","3em")
+					  .style("width","60px")
+					  .style("height","50px")
+					  .style("padding","10px")
+					  .style("border","1px solid #0d73d6")
+					  .style("background-color","rgba(255,255,255,0.8)")
+					  .style("border-radius","30px")
+					  ;
+
+				var zoom_svg = uen.select("svg").attr("width","40px")
+									    .attr("height","30px")
+										.attr("viewBox","0 0 40 30");
+
+				var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1050)")
+												.attr("stroke","#0d73d6")
+												.attr("stroke-linecap","round")
+												.attr("fill","none");	
+
+				zoom_in_g.append("path").attr("stroke-width","4")
+							.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
+				zoom_in_g.append("path").attr("stroke-width","2")
+							.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+
+
+		};
+
+		tiles.on("mousedown", function(d,i){
+			if(expandable[(i+"")]){
+				show(d.id);
+			}
+		});
+
+		sizeCheck();
+
+		window.addEventListener("resize", sizeCheck);
+
+
 	};
 
+	//unused here -- useful when you want a quick list of buttons
 	I.grid_small = function(container, supercluster, text_color){
 		var outer_wrap = d3.select(container);
 
@@ -2354,7 +2506,7 @@ function interventions(){
 
 		dots.on("mousedown", function(d){
 			//if(turn_on.hasOwnProperty(d)){
-				show(d);
+				show(d.id);
 			//};
 		});
 
@@ -2392,15 +2544,33 @@ function interventions(){
 	return I;
 }
 
+function add_hand_icons$1(container){
+	if(arguments.length > 0){
+		var spans = d3.select(container).selectAll('span.hand-icon');
+	}
+	else{
+		var spans = d3.selectAll('span.hand-icon');
+	}
+
+	var url = dir.url("data", "hand_icon.png");
+
+	var images = spans.selectAll("img").data([url]);
+		images.exit().remove();
+		images.enter().append("img").style("display","inline-block")
+									.style("width","2em")
+									.style("height","2em")
+									.style("vertical-align","middle")
+									.attr("src", url)
+									.attr("alt","pointer icon");
+}
+
 //main function
 function main(){
 
 
   //local
   dir.local("./");
-  //dir.add("dirAlias", "path/to/dir");
-  //dir.add("dirAlias", "path/to/dir");
-
+  dir.add("data", "data");
 
   //production data
   //dir.add("dirAlias", "rackspace-slug/path/to/dir");
@@ -2416,26 +2586,54 @@ function main(){
   else{
     var wrap = d3.select("#metro-interactive");
 
-    var access_map_wrap = wrap.append("div");
-    access_map_wrap.append("h3").text("Broadband access metro bubble map");
+    var access_map_wrap = d3.select("#access-map");
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
-    var subscription_map_wrap = wrap.append("div");
-    subscription_map_wrap.append("h3").text("Subscription metro bubble map");
+    var subscription_map_wrap = d3.select("#subscription-map");
     subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
 
-    var tract_map_wrap = wrap.append("div");
-    tract_map_wrap.append("h3").text("Subscription tract map");
+    var tract_map_wrap = d3.select("#tract-map").style("max-width","1600px");
     tract_maps(tract_map_wrap.node());
 
     var inter = interventions();
-    var inter_wrap = wrap.append("div");
-    var inter_federal = inter_wrap.append("div");
+
+    var inter_federal = d3.select("#federal_policy");
+    var inter_local = d3.select("#local_policy");
     
     inter.grid(inter_federal.node());
+    inter.grid(inter_local.node(), true);
 
+    //add in images
+    var chicago = d3.select("#tract-map-example").style("position","relative").append("a").attr("href","#tract-map").classed("jump-link",true);
+    chicago.append("img").attr("src", dir.url("data", "Chicago.png"));
+    chicago.append("div").style("position","relative")
+                         .classed("makesans",true)
+                         .style("padding","0em 0em 0em 0em")
+                         .style("border-top","1px dotted #0d73d6")
+                         //.style("bottom","0px")
+                         //.style("right","0%")
+                         //.style("width","90%")
+                         .style("top","-150px")
+                         .append("div")
+                         .style("padding","1em 0em 1em 1em")
+                         .style("background-color","rgba(255,255,255,0.8)")
+                         .append("p")
+                         .style("margin","0em")
+                         .html('Census tracts in the Chicago metropolitan area, shaded by broadband subscription rates; <b class="red-text">red</b> indicates low rates of broadband subscription while <b class="blue-text">blue</b> indicates high subscription neighborhoods. Detailed interactive maps are available below.');
+
+    chicago.append("p").html('<span class="hand-icon"></span> <span style="white-space:nowrap">Jump to maps</span>').style("position","absolute")
+                        .style("top","20%").style("left","64%");
+
+
+  
+    add_hand_icons$1(chicago.node());
+
+    //availability by speed tier
+    d3.select("#availability-by-speed-tier").append("img").attr("src", dir.url("data","share_without_access.svg"));
+
+    d3.select("#rural-availability").append("img").attr("src", dir.url("data","share_without_access_by_geo.svg"));
   }
 
 

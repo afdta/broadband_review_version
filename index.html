@@ -7,10 +7,125 @@
 
   <link rel="stylesheet" href="app.css">
   <script src="app.js" type="text/javascript"></script>
+
+  <style>
+  	p{
+  		font-family: "georgia times";
+  		font-size: 18px;
+  		line-height: 1.8em;
+  	}
+
+  	a{
+  		color:purple;
+  		border-bottom: 1px dotted #dc2a2a;
+    	color: #dc2a2a;
+  	}
+  </style>
 </head>
 
 <body style="min-height:2500px;">
+
 <div id="metro-interactive">
+
+<p class="brook text-section-title">What we mean when we talk about Broadband</p>
+<div class="text-section reading split50 c-fix"> 
+	<div>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>
+	</div>
+	<div>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>
+		<p class="brook"></p>		
+	</div>
+</div>
+
+
+<p class="brook text-section-title">Neighborhoods are a critical lens</p>
+<div class="text-section reading split50 c-fix"> 
+	<div>
+		<p class="brook">Our analysis looks at broadband availability and adoption in neighborhoods, which are approximated by census tracts in the data.</p>
+		<p class="brook">Neighborhood-level analyses of broadband infrastructure and uptake are essential for better identifying and addressing deployment gaps within regions, municipalities, and rural counties. At the same time, disaggregating metrics on the digital divide down to the neighborhood level allows policymakers and practitioners to more effectively target their limited resources to boost adoption among the lagging populations and neighborhoods that stand to benefit most from those efforts.</p>
+		<p class="brook">Neighborhood-level broadband conditions can indicate which neighborhoods are most likely to be left behind in a digital era. Chicago's multiyear Smart Communities program—which offered digital literacy and other training in targeted, low-income neighborhoods—proved that more residents will access job and health care services when they receive a neighborhood-wide intervention to promote broadband use.<sup data-footnote="26">26</sup> These promising results suggest that getting entire neighborhoods online can lead to greater economic outcomes, but they also confirm that neighborhoods struggling with broadband subscription are important focus areas for inclusive economic development planning.</p>
+		<p class="brook">There may also be a case for further study to understand the "neighborhood effects" of broadband deployment and subscription, much like work around neighborhood concentrated poverty.<sup data-footnote="27">27</sup> For instance, neighborhood broadband conditions—the presence of broadband connectivity and total subscription levels within a small geography—could create spillovers that impact the entire population in those neighborhoods and even the broader region. Much like the broader phenomenon of network effects within the infrastructure sector, the more (or less) people who can access and subscribe to broadband the better (or worse) a neighborhood will be situated across multiple critical policy dimensions. For example, areas with limited broadband availability and/or adoption may face slow development of things like digital curriculum in schools or digital delivery of government services. [CHECK FIRST/LAST SENTENCE OF SECTION W/ AUTHORS -- MORE DETAIL ON CURRICULUM OR GOV'T SERVICES?]</p>
+		<p class="brook"></p>
+	</div>
+	<div id="tract-map-example"></div>
+</div>
+
+<p class="brook text-section-title">One side of the digital divide: Broadband availability</p>
+<div class="text-section reading split50 c-fix"> 
+	<div>
+		<p class="brook">Market dynamics impact private-sector deployments.<sup>30</sup> Since telecommunications firms need revenues to justify infrastructure construction and operation, population density and average income affect availability in critical ways.<sup>31</sup> In particular, far-flung and sparsely populated rural areas are often underserved relative to their metropolitan peers.<sup>32</sup> Competition can also significantly influence the quality of service offered, especially for minority groups.<sup>33</sup> Even up against these equity hurdles, broadband deployment has seen a significant uptick, and the quality of service continually improves.<sup>34</sup></p>
+		<p class="brook">We consider a census tract “covered” by broadband if at least half of its census block residents have the option to purchase fixed, wireline broadband-speed internet service from at least one provider. For more details on the underlying methodology, please download the full report.</p>
+		<p class="brook">We focus in particular on the 25 Mbps download speed threshold, as it is the current standard in the United States for determining what constitutes broadband.<sup>49</sup> In particular, this is the advanced speed to originate and receive high-quality voice, data, graphics, and video telecommunications. However, because the definition of broadband has evolved and continues to do so, we also consider patterns of availability according to alternative speed thresholds (e.g., 10 Mbps download speed, which is one prevailing international standard).</p>
+	</div>
+	<div>
+		<p class="brook">Most Americans have access to broadband at 3 or 10 Mbps. Areas without availability start to show at 25 Mbps—22 million Americans (7 percent) lack access to this speed tier.</p>
+		
+		<div id="availability-by-speed-tier"></div>	
+		<p class="brook">By far, the largest broadband deployment gap exists in rural communities, where more than one in four residents (12.7 million people) lacked 25 Mbps broadband service in 2015. While rural communities are home to just 15 percent of the nation's total population, they accounted for 57 percent of the nation's residents in neighborhoods where broadband has yet to be deployed—a ratio that remains roughly the same at lower speed thresholds.</p>
+		<div id="rural-availability"></div>	
+	</div>
+</div>
+
+<!--metro level availability-->
+<p class="brook text-section-title">Mapping metro area availability</p>
+<div class="text-section reading centered"> 
+	<p class="brook"></p>
+	<p class="brook"></p>
+</div>
+<div id="access-map"></div>
+
+
+<p class="brook text-section-title">The flipside of the digital divide: Broadband subscription</p>
+<div class="text-section reading split50 c-fix"> 
+	<div>
+		<p class="brook">National statistics on the extent to which households are subscribing to broadband reveal a country undergoing an uneven transition to the digitally connected economy, and they illuminate a digital divide that splits along both geographic and economic lines. Due to the structure of FCC subscription data, broadband speeds within this section are defined as 10 Mbps download and 1 Mbps upload.</p>
+		<p class="brook">In 2015, almost one in four people (a total of 73.5 million) in the United States lived in low subscription neighborhoods, where fewer than 40 percent of households subscribed to broadband. Such neighborhoods concentrate the digitally disconnected portions of the American population, leaving their residents at risk of missing the economic benefits of a high-speed internet connection. Especially concerning are the 17.7 million children under the age of 18 dwelling in these neighborhoods. Living without an in-home broadband connection is a challenge for children, as they may not be able to benefit from digital curricula or develop digital skills for the future workplace. But it is especially challenging for schools and school districts that serve clusters of non-subscribing households.</p>
+		<p class="brook"></p>
+	</div>
+	<div>
+		<p class="brook">Most Americans—185.7 million people or 59 percent of the nation—experienced somewhat better connectivity in moderate subscription neighborhoods, i.e., census tracts with subscription rates between 40 and 80 percent. However, these neighborhoods still fall short of a national goal of nearing 100 percent subscription. In practice, only a modest share of the population lives in neighborhoods that either come close to or have already achieved that goal. High subscription neighborhoods, where at least 80 percent of households subscribe to high-speed broadband, were home to just 18 percent of the nation—or 57.1 million people—in 2015.</p>
+		<p></p>
+		<div id="subscription-chart"></div>	
+	</div>
+</div>
+
+
+<!--metro level subscription-->
+<p class="brook text-section-title">Mapping metro area subscription rates</p>
+<div class="text-section reading centered"> 
+	<p class="brook"></p>
+	<p class="brook"></p>
+</div>
+<div id="subscription-map"></div>
+
+<p class="brook text-section-title">The federal role: Balancing availability and adoption goals to bridge the digital divide</p>
+<div class="text-section reading centered">
+	<p class="brook">Recognizing the fragmented landscape that governs broadband deployment, federal policy has long focused overwhelmingly on solving the collective action challenges inherent in increasing availability. Yet federal policy continues to largely overlook adoption. How the FCC handles Section 706 of the 1996 Telecommunications Act is emblematic of this tension: the law mandates that the FCC review advanced telecommunications deployment based on population, but it is on a voluntary basis that the agency monitors adoption.<sup data-footnote="66">66</sup></p>
+	<p class="brook">To some extent this arms-length approach stems from the complex array of factors—from pricing and marketing down to consumer choice and digital literacy—that shapes subscription levels. At the same time, the sheer scale of non-subscribed broadband households is difficult to ignore, and the fact that every community is affected—from New York City to rural Wyoming—generates political resonance and suggests the need for more targeted federal policy attention. There are clear opportunities to move adoption issues to the forefront of national policy, but current and past efforts have been patchwork.<sup data-footnote="67">67</sup> Simply put, formal policy must move beyond volunteerism.</p>
+	<p class="brook">Moving forward, there are a number of ways—through funding, regulation, research, and technical assistance—that federal actors can continue to advance gains in availability while at the same time elevating their focus and commitment to reducing adoption barriers.</p>
+</div>
+<div id="federal_policy"></div>
+
+<p class="brook text-section-title">The role of local stakeholders: Align data and programs to reflect local needs</p>
+<div class="text-section reading centered"> 
+	<p class="brook">Neighborhood-level broadband indicators reveal clear performance differences within and between communities of all sizes. As such, no one community will require the same interventions to address its availability and adoption gaps. However, local stakeholders from the public, private, and civic sectors can use common approaches to geographically target and design interventions that leverage federal, state, and local resources and programs and reflect local conditions and needs.</p>
+</div>
+<div id="local_policy"></div>
+
+<p class="brook text-section-title">Mapping broadband subscription at the neighborhood scale</p>
+<div class="text-section reading centered"> 
+	<p class="brook">While a great amount of variation in subscription levels exists both within and across the 100 largest metro areas, the pattern uniting each metro area is the presence of digital disconnect. In fact, low subscription tracts exist in the surrounding suburbs of all 100 metro areas and in the cities of all but six metro areas: Allentown, Pa.; Deltona, North Port, and Palm Bay, Fla.; Providence, R.I.; and San Jose, Calif. In other words, the digital divide is pervasive.</p>
+	<p>Use the interactive feature below to select one of the 100 largest metro areas.</p>
+</div>
+<div id="tract-map"></div>
 
 </div>
 </body>
