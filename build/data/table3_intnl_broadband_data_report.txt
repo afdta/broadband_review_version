@@ -1,0 +1,34 @@
+Country Dollars_per_Mbps DollarsPPP_per_Mbps
+Australia 4.09 3.12
+Austria 2.05 1.94
+Belgium 1.34 1.25
+Brazil 12.55 19.12
+Bulgaria 0.35 0.79
+Canada 2.77 2.51
+Chile 2.90 4.91
+"Czech Republic" 2.73 4.31
+Denmark 1.64 1.25
+Finland 3.89 3.31
+France 0.81 0.75
+Germany 1.36 1.37
+Greece 1.96 2.41
+"Hong Kong" 0.19 0.26
+Hungary 1.43 2.74
+India 5.99 21.97
+Israel 1.18 1.09
+Italy 2.83 2.94
+Japan 1.88 1.99
+Korea 0.31 0.38
+Mexico 1.69 2.85
+Netherlands 1.12 1.07
+Poland 0.59 1.08
+Portugal 1.17 1.51
+Singapore 0.35 0.51
+"Slovak Republic" 1.63 2.52
+Slovenia 6.59 8.61
+Spain 1.20 1.39
+Sweden 2.75 2.29
+Switzerland 5.81 4.01
+Turkey 2.70 5.62
+"United Kingdom" 0.76 0.68
+"United States" 4.18 4.18

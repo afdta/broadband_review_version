@@ -418,6 +418,17 @@ div.subway-tile.click-for-more-info .more-info-available{
     width:50%;
     margin:1em 0em 2em 2em;
   }    
+
+  #metro-interactive .split50 > div{
+    width:auto;
+    padding:0em 0em 0em 0%;
+    float:none;
+  }
+
+  #metro-interactive .split50 > div:first-child{
+    border-right:0px solid #aaaaaa;
+    padding:0em 0% 0em 0em;
+  }    
 }
 
 @media (min-width:950px){

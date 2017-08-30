@@ -820,7 +820,7 @@ function layer(){
 			delete aes_mappings[attr];
 			return L;
 		}
-		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, cx:1, cy:1}){
+		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, cx:1, cy:1, filter:1}){
 			aes_mappings[attr] = {map:attr_mapper};
 			return L;
 		}
@@ -1664,7 +1664,7 @@ function mapd(root_container){
 			var layer_to_fit = layers[0];
 			
 			var previous_scale = proj.scale();
-			proj.fitExtent([[0,0], [dimensions.width*zoom_scalar, dimensions.height*zoom_scalar]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
+			proj.fitExtent([[5,5], [(dimensions.width*zoom_scalar)-15, (dimensions.height*zoom_scalar)-15]], layer_to_fit.geo()[0].data); //fit to first geojson object in layer
 			var new_scale = proj.scale();
 
 			//could use ratio of new_scale:previous_scale instead of zoom_scalar
@@ -1881,9 +1881,10 @@ function tract_maps(container){
 
 	var geoCache = {};
 	var topoCache = {};
+	var borderCache = {};
 	function get_and_map(cbsa){
 		if(geoCache.hasOwnProperty(cbsa)){
-			map_tract(geoCache[cbsa], topoCache[cbsa]);
+			map_tract(geoCache[cbsa], topoCache[cbsa], borderCache[cbsa]);
 		}
 		else{
 			var uri = "./data/tract_json/"+cbsa+".json";
@@ -1894,10 +1895,28 @@ function tract_maps(container){
 				var geoj = topojson.feature(topo, topo.objects.tracts);
 				geoj.bbox = topojson.bbox(topo);
 
+				var border = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+					return a===b;
+				});
+
+				var border_fc = {
+					"type": "FeatureCollection",
+					"features": [
+						{
+							"type": "Feature",
+							"geometry": border,
+							"properties": {
+								"geo_id":"border"
+							}
+						}	
+					]
+				};
+
 				geoCache[cbsa] = geoj; //cache it
 				topoCache[cbsa] = topo;
+				borderCache[cbsa] = border_fc;
 
-				map_tract(geoj, topo);		
+				map_tract(geoj, topo, border_fc);		
 			});
 		}
 	}
@@ -1910,17 +1929,19 @@ function tract_maps(container){
 
 	var alldata;
 
-	function map_tract(geoj, topo){
+	function map_tract(geoj, topo, border){
 		map.clear();
 
+		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
-
+		
 		if(!!alldata){
 
 			tract_layer.data(alldata, "tr");
 
 			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+			tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+
 
 			build_filters(tract_layer);
 
@@ -2310,7 +2331,7 @@ function interventions(){
 						.style("padding",function(d,i){
 							return i==0 ? "0.5rem " + (x_width+20)+"px" + " 0rem 1rem" : "0rem 1rem 0rem 1rem";
 						})
-						.style("margin","1rem 0em 1.5rem 0em")
+						.style("margin","1rem 0em 1.75rem 0em")
 						.style("font-weight",function(d,i){return i==0 ? "bold" : "normal"})
 						.style("font-size",function(d,i){return i==0 ? "1.5em" : null})
 						//.style("font-size", function(d,i){return i==0} ? "1.5em" : "1em")
@@ -2586,6 +2607,14 @@ function main(){
   else{
     var wrap = d3.select("#metro-interactive");
 
+    //build an svg filter
+    var defs = wrap.append("div").style("height","2px").append("svg").append("defs");
+    var filter = defs.append("filter").attr("id","feBlur").attr("width","150%").attr("height","150%");
+    filter.append("feOffset").attr("result","offsetout").attr("in","SourceGraphic").attr("dx","6").attr("dy","6");
+    filter.append("feColorMatrix").attr("result","matrixout").attr("in","offsetout").attr("type","matrix").attr("values","0.25 0 0 0 0 0 0.25 0 0 0 0 0 0.25 0 0 0 0 0 1 0");
+    filter.append("feGaussianBlur").attr("result","blurout").attr("in","matrixout").attr("stdDeviation","6");
+    filter.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");    
+
     var access_map_wrap = d3.select("#access-map");
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
@@ -2631,9 +2660,21 @@ function main(){
     add_hand_icons$1(chicago.node());
 
     //availability by speed tier
-    d3.select("#availability-by-speed-tier").append("img").attr("src", dir.url("data","share_without_access.svg"));
+    var availability_graphic1 = d3.select("#availability-by-speed-tier").style("margin-bottom","2em");
+    availability_graphic1.append("p").html("<b>Seven percent of Americans lack access to 25 Mbps broadband</b>").style("font-size","1.15em");
+    availability_graphic1.append("img").attr("src", dir.url("data","share_without_access.svg"));
 
-    d3.select("#rural-availability").append("img").attr("src", dir.url("data","share_without_access_by_geo.svg"));
+    var availability_graphic2 = d3.select("#rural-availability");
+    availability_graphic2.append("p").html("<b>One in four rural residents does not have access to 25 Mbps broadband</b>").style("font-size","1.15em");
+    availability_graphic2.append("img").attr("src", dir.url("data","share_without_access_by_geo.svg"));
+
+    var subscription_graphic = d3.select("#subscription-chart");
+    subscription_graphic.append("p").html("<b>Less than one-fifth of Americans live in a high subscription neighborhood where at least 80 percent of residents have a broadband subscription</b>").style("font-size","1.15em").style("margin-bottom","20px");
+    subscription_graphic.append("img").attr("src", dir.url("data","subscription_levels.svg"));  
+
+    var pricing_graphic = d3.select("#pricing-by-country");
+    pricing_graphic.append("p").html('<b>Average price of fixed broadband plans per Mbps of download speed, <span style="white-space:nowrap">2014 (US$)</span></b>').style("font-size","1.15em").style("margin-bottom","15px");
+    pricing_graphic.append("img").attr("src", dir.url("data","price_by_country.svg")); 
   }
 
 

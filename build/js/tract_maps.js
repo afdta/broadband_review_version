@@ -16,9 +16,10 @@ export default function tract_maps(container){
 
 	var geoCache = {};
 	var topoCache = {};
+	var borderCache = {};
 	function get_and_map(cbsa){
 		if(geoCache.hasOwnProperty(cbsa)){
-			map_tract(geoCache[cbsa], topoCache[cbsa]);
+			map_tract(geoCache[cbsa], topoCache[cbsa], borderCache[cbsa]);
 		}
 		else{
 			var uri = "./data/tract_json/"+cbsa+".json";
@@ -29,10 +30,28 @@ export default function tract_maps(container){
 				var geoj = topojson.feature(topo, topo.objects.tracts);
 				geoj.bbox = topojson.bbox(topo);
 
+				var border = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+					return a===b;
+				});
+
+				var border_fc = {
+					"type": "FeatureCollection",
+					"features": [
+						{
+							"type": "Feature",
+							"geometry": border,
+							"properties": {
+								"geo_id":"border"
+							}
+						}	
+					]
+				}
+
 				geoCache[cbsa] = geoj; //cache it
 				topoCache[cbsa] = topo;
+				borderCache[cbsa] = border_fc;
 
-				map_tract(geoj, topo);		
+				map_tract(geoj, topo, border_fc);		
 			});
 		}
 	}
@@ -45,17 +64,19 @@ export default function tract_maps(container){
 
 	var alldata;
 
-	function map_tract(geoj, topo){
+	function map_tract(geoj, topo, border){
 		map.clear();
 
-		var tract_layer = map.layer().geo(geoj);
-
+		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
+		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
+		
 		if(!!alldata){
 
 			tract_layer.data(alldata, "tr");
 
 			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			var cat_scale = tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+			tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+
 
 			build_filters(tract_layer);
 
