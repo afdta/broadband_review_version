@@ -27,13 +27,19 @@ function main(){
   else{
     var wrap = d3.select("#metro-interactive");
 
-    //build an svg filter
+    //build svg filters
     var defs = wrap.append("div").style("height","2px").append("svg").append("defs");
     var filter = defs.append("filter").attr("id","feBlur").attr("width","150%").attr("height","150%");
     filter.append("feOffset").attr("result","offsetout").attr("in","SourceGraphic").attr("dx","6").attr("dy","6");
     filter.append("feColorMatrix").attr("result","matrixout").attr("in","offsetout").attr("type","matrix").attr("values","0.25 0 0 0 0 0 0.25 0 0 0 0 0 0.25 0 0 0 0 0 1 0");
     filter.append("feGaussianBlur").attr("result","blurout").attr("in","matrixout").attr("stdDeviation","6");
-    filter.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");    
+    filter.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");
+
+    var filter2 = defs.append("filter").attr("id","feBlur2").attr("width","150%").attr("height","150%");
+    filter2.append("feOffset").attr("result","offsetout").attr("in","SourceGraphic").attr("dx","2").attr("dy","2");
+    filter2.append("feColorMatrix").attr("result","matrixout").attr("in","offsetout").attr("type","matrix").attr("values","0.25 0 0 0 0 0 0.25 0 0 0 0 0 0.25 0 0 0 0 0 0.5 0");
+    filter2.append("feGaussianBlur").attr("result","blurout").attr("in","matrixout").attr("stdDeviation","5");
+    filter2.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");      
 
     var access_map_wrap = d3.select("#access-map");
     access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");

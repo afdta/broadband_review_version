@@ -25,7 +25,9 @@ export default function access_bubble_map(container){
 		var stategeo = map.geo("state");
 		var metros = map.geo("metro").filter(function(d){return d.t100==1});
 
-		var state_layer = map.layer().geo(stategeo);
+		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
+		var state_layer = map.layer().geo(stategeo).attr("fill","#ffffff");
+		
 		var projection = d3.geoAlbersUsa();
 		map.projection(projection);
 

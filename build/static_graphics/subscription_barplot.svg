@@ -8,8 +8,8 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="700"
-   height="130"
-   viewBox="0 0 525 97.5"
+   height="180"
+   viewBox="0 0 525 135"
    version="1.1"
    id="svg160"
    sodipodi:docname="subscription_barplot.svg"
@@ -22,7 +22,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -41,8 +41,8 @@
      showgrid="false"
      units="px"
      inkscape:zoom="0.70238095"
-     inkscape:cx="251.90689"
-     inkscape:cy="349.19337"
+     inkscape:cx="254.05027"
+     inkscape:cy="235.29506"
      inkscape:window-x="2278"
      inkscape:window-y="152"
      inkscape:window-maximized="0"
@@ -203,104 +203,144 @@
       </symbol>
     </g>
   </defs>
-  <g
-     id="g4578"
-     transform="scale(1,1.2222222)">
-    <path
-       style="fill:#ee3a2b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245"
-       d="M 1.3609999e-8,67.5 H 121.99906 V 0 H 1.3609999e-8 Z m 0,0"
-       id="path53"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#9ecae1;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245"
-       d="M 121.99906,67.5 H 430.22559 V 0 H 121.99906 Z m 0,0"
-       id="path55"
-       inkscape:connector-curvature="0" />
-    <path
-       style="fill:#074594;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245"
-       d="m 430.22559,67.5 h 94.77439 V 0 h -94.77439 z m 0,0"
-       id="path57"
-       inkscape:connector-curvature="0" />
-  </g>
+  <path
+     inkscape:connector-curvature="0"
+     id="path53"
+     d="M 1.3609999e-8,96 H 121.99906 V 28.5 H 1.3609999e-8 Z m 0,0"
+     style="fill:#ee3a2b;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path55"
+     d="M 121.99906,96 H 430.22559 V 28.5 H 121.99906 Z m 0,0"
+     style="fill:#c2defa;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245" />
+  <path
+     inkscape:connector-curvature="0"
+     id="path57"
+     d="m 430.22559,96 h 94.77439 V 28.5 h -94.77439 z m 0,0"
+     style="fill:#074594;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.50088245" />
   <text
      xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75;"
+     style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:16.5px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
      x="8.0348206"
-     y="19.055359"
+     y="47.555359"
      id="text4716"><tspan
        sodipodi:role="line"
        id="tspan4714"
        x="8.0348206"
-       y="19.055359"
-       style="font-size:15px;stroke-width:0.75;fill:#ffffff;">Low sub.</tspan></text>
+       y="47.555359"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';fill:#ffffff;stroke-width:0.75">Low </tspan><tspan
+       sodipodi:role="line"
+       x="8.0348206"
+       y="64.055359"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';fill:#ffffff;stroke-width:0.75"
+       id="tspan4531" /></text>
   <text
      xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
-     x="8.5108948"
-     y="54.355042"
-     id="text4716-6"><tspan
-       sodipodi:role="line"
-       id="tspan4714-2"
-       x="8.5108948"
-       y="54.355042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#ffffff;stroke-width:0.75">73.5 million</tspan><tspan
-       sodipodi:role="line"
-       x="8.5108948"
-       y="73.105042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#ffffff;stroke-width:0.75"
-       id="tspan5571">23%</tspan></text>
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.75"
+     style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:16.5px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#111111;fill-opacity:1;stroke:none;stroke-width:0.75"
      x="128.47372"
-     y="19.604675"
+     y="48.104675"
      id="text4720"><tspan
        sodipodi:role="line"
-       id="tspan4718"
        x="128.47372"
-       y="19.604675"
-       style="font-size:15px;stroke-width:0.75">Moderate subscription</tspan></text>
+       y="48.104675"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';fill:#111111;fill-opacity:1;stroke-width:0.75"
+       id="tspan4533">Moderate </tspan></text>
   <text
      xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#1a1a1a;fill-opacity:1;stroke:none;stroke-width:0.75"
-     x="129.10361"
-     y="54.355042"
-     id="text4716-6-1"><tspan
-       sodipodi:role="line"
-       id="tspan4714-2-7"
-       x="129.10361"
-       y="54.355042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#1a1a1a;stroke-width:0.75">185.7 million</tspan><tspan
-       sodipodi:role="line"
-       x="129.10361"
-       y="73.105042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#1a1a1a;stroke-width:0.75"
-       id="tspan5571-8">59%</tspan></text>
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75;"
+     style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:16.5px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
      x="438.09854"
-     y="19.604675"
+     y="48.104675"
      id="text4724"><tspan
        sodipodi:role="line"
        id="tspan4722"
        x="438.09854"
-       y="19.604675"
-       style="font-size:15px;stroke-width:0.75;fill:#ffffff;">High sub.</tspan></text>
+       y="48.104675"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';fill:#ffffff;stroke-width:0.75">High </tspan><tspan
+       sodipodi:role="line"
+       x="438.09854"
+       y="64.604675"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans Italic';fill:#ffffff;stroke-width:0.75"
+       id="tspan4535" /></text>
+  <g
+     id="g4549"
+     transform="translate(-3,10.5)"
+     style="fill:#55555f;fill-opacity:0.94117647">
+    <text
+       id="text4716-6"
+       y="102.35504"
+       x="119.52641"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke:none;stroke-width:0.75"
+       xml:space="preserve"><tspan
+         id="tspan5571"
+         style="font-size:15px;text-align:end;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke-width:0.75"
+         y="102.35504"
+         x="119.52641"
+         sodipodi:role="line">23%</tspan></text>
+    <text
+       id="text4716-6-1"
+       y="102.35504"
+       x="427.75293"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke:none;stroke-width:0.75"
+       xml:space="preserve"><tspan
+         id="tspan5571-8"
+         style="font-size:15px;text-align:end;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke-width:0.75"
+         y="102.35504"
+         x="427.75293"
+         sodipodi:role="line">59%</tspan></text>
+    <text
+       id="text4716-6-5"
+       y="102.35504"
+       x="522.52734"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke:none;stroke-width:0.75"
+       xml:space="preserve"><tspan
+         id="tspan5571-1"
+         style="font-size:15px;text-align:end;text-anchor:end;fill:#55555f;fill-opacity:0.94117647;stroke-width:0.75"
+         y="102.35504"
+         x="522.52734"
+         sodipodi:role="line">18%</tspan></text>
+  </g>
   <text
      xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
-     x="438.72842"
-     y="54.355042"
-     id="text4716-6-5"><tspan
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
+     x="115.70337"
+     y="88.884644"
+     id="text4716-6-4"><tspan
        sodipodi:role="line"
-       id="tspan4714-2-74"
-       x="438.72842"
-       y="54.355042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#ffffff;stroke-width:0.75">57.1 million</tspan><tspan
+       x="115.70337"
+       y="88.884644"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke-width:0.75"
+       id="tspan5571-5">73.5 million</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#1a1a1a;fill-opacity:1;stroke:none;stroke-width:0.75"
+     x="423.9299"
+     y="88.884644"
+     id="text4716-6-1-0"><tspan
        sodipodi:role="line"
-       x="438.72842"
-       y="73.105042"
-       style="font-size:15px;text-align:start;text-anchor:start;fill:#ffffff;stroke-width:0.75"
-       id="tspan5571-1">18%</tspan></text>
+       x="423.9299"
+       y="88.884644"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';text-align:end;text-anchor:end;fill:#1a1a1a;stroke-width:0.75"
+       id="tspan5571-8-8">185.7 million</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:1.25;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:end;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.75"
+     x="518.70428"
+     y="88.884644"
+     id="text4716-6-5-7"><tspan
+       sodipodi:role="line"
+       x="518.70428"
+       y="88.884644"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;font-family:'liberation sans';-inkscape-font-specification:'liberation sans';text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke-width:0.75"
+       id="tspan5571-1-7">57.1 million</tspan></text>
+  <text
+     xml:space="preserve"
+     style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:15px;line-height:150%;font-family:Arial;-inkscape-font-specification:'Arial Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#111111;fill-opacity:1;stroke:none;stroke-width:0.75"
+     x="-0.41748047"
+     y="15.369141"
+     id="text5668"><tspan
+       sodipodi:role="line"
+       x="-0.41748047"
+       y="15.369141"
+       style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;font-family:Arial;-inkscape-font-specification:'Arial Italic';fill:#111111;fill-opacity:1;stroke-width:0.75"
+       id="tspan5670">Share U.S. pop. living in low, moderate, and high subscription neighborhoods</tspan></text>
 </svg>
