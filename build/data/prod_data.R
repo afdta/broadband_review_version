@@ -3,6 +3,7 @@
 library(tidyverse)
 library(metromonitor)
 library(jsonlite)
+library(readxl)
 
 data <- read_csv("/home/alec/Projects/Brookings/broadband/build/data/Masterfile.txt")
 data$atl3 <- substring(data$atl3,1,1)
@@ -43,16 +44,21 @@ sums2 <- limit100(sums2, "cbsa")
 
 writeLines(toJSON(sums2[,c(1,3:8)], digits=5), "/home/alec/Projects/Brookings/broadband/data/metro_adoption.json")
 
+#pull in metro level data
+gaz <- read_tsv("/home/alec/Projects/Brookings/broadband/build/data/gazetteer/2016_Gaz_cbsa_national.txt")
+availability <- read_xlsx("/home/alec/Projects/Brookings/broadband/build/data/Appendix C - Metropolitan Broadband Data.xlsx", sheet=2, skip=2)
+avail_final <- merge(gaz[c("GEOID","NAME","ALAND_SQMI","AWATER_SQMI")], availability[c("CBSA","Metro Area","Population","Metro Area__3","Metro Area__4")], by.x="GEOID", by.y="CBSA")
+sum(sub(" Metro Area", "", avail_final$NAME) == avail_final$`Metro Area`) #perfect match
+avail_final$density <- avail_final$Population/avail_final$ALAND_SQMI
+avail_final <- avail_final[c("GEOID","density","Metro Area__3","Metro Area__4")]
+names(avail_final) <- c("cbsa","density","shwo","numwo")
+avail_json <- toJSON(avail_final, na="null", digits=5)
+writeLines(text = avail_json, con = "/home/alec/Projects/Brookings/broadband/data/metro_access.json")
 
 
-#identical
-%>% do({
-  data <- .
-  data$share2 <- data$pop/sum(data$pop)
-  data
-})
 
-sum(sums2$share==sums2$share2)
+
+#################################
 
 
 #scrap ...

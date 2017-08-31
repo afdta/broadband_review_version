@@ -58,9 +58,25 @@ export default function tract_maps(container){
 
 	var map = mapd(map_wrap.node());
 
-	var menu_wrap = map.menu();
-	var select = menu_wrap.append("div");
-	var filter_wrap = menu_wrap.append("div").classed("c-fix",true).style("padding","5px 0px 2em 0px");
+	var menu_wrap = map.menu().style("margin-bottom","1em");
+	
+
+	var menu_inner = menu_wrap.append("div").style("max-width","800px")
+							  .style("margin","0px auto 2em auto")
+							  .style("padding","0em 0px")
+							  ;
+
+	var select = menu_inner.append("div");
+
+		menu_inner.append("p").text("SHOW NEIGHBORHOODS WITH:")
+							  .style("margin","1.5em 0em 0em 0em")
+							  .style("font-size","0.85em")
+							  .style("color", "#555555")
+							  .style("padding", "0px 0px 6px 6px")
+							  .style("line-height","1em")
+							  ;
+
+	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
 
 	var alldata;
 
@@ -69,6 +85,8 @@ export default function tract_maps(container){
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
+
+		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
 		
 		if(!!alldata){
 
@@ -164,43 +182,40 @@ export default function tract_maps(container){
 	})
 
 	//build filters
+	var filter_selections = {av:false, pov:false, ki:false, ba:false};
 	function build_filters(layer){
-		var filters_update = filter_wrap.selectAll("div.filter").data(["av","pov","ki","ba"]);
+		var filters_update = filter_wrap.selectAll("p.filter").data(["av","pov","ki","ba"]);
 		filters_update.exit().remove();
-		var filters_enter = filters_update.enter().append("div").classed("filter",true);
-			filters_enter.append("p").text(function(d){
-				var text = {av:"Availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
-				return text[d];
-			})
+		var filters_enter = filters_update.enter().append("p").classed("filter",true);
 		var filters = filters_enter.merge(filters_update);
-			filters.style("float","left").style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
-					.style("border","1px solid #aaaaaa")
-					.style("border-radius","5px");
+			filters.style("float","left")
+				   .text(function(d){
+						var text = {av:"No availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
+						return text[d];
+					});
+
+			//.style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
+			//		.style("border","1px solid #aaaaaa")
+			//		.style("border-radius","5px");
 
 		filters.on("mousedown",function(d){
-			if(d=="av"){
-				layer.style("opacity",function(d){
-					return d.av=="N" ? "0.05" : "1";
-				});
+
+			d3.select(this).classed("selected", filter_selections[d] = !filter_selections[d]);
+
+			//passing these tests means showing the geo (e.g. no availability, high poverty)
+			var av_test = function(d){return !filter_selections.av || (filter_selections.av && d.av == "N")}
+			var pov_test = function(d){return !filter_selections.pov || (filter_selections.pov && d.pov >= 0.2)}
+			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.3)}
+			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba < 0.28)}
+
+			var composite_filter = function(d){
+				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				return show ? "1" : "0.05";
 			}
 
-			if(d=="pov"){
-				layer.style("opacity",function(d){
-					return d.pov < 0.2 ? "0.05" : "1";
-				});
-			}
-
-			if(d=="ki"){
-				layer.style("opacity",function(d){
-					return d.ki < 0.23 ? "0.05" : "1";
-				});
-			}
-
-			if(d=="ba"){
-				layer.style("opacity",function(d){
-					return d.ba < 0.28 ? "0.05" : "1";
-				});
-			}
+			layer.style("opacity",function(d){
+				return composite_filter(d);
+			});
 
 			layer.draw();
 		});

@@ -172,31 +172,7 @@ div.reading.centered{
   color: #0d73d6;
 }
 
-.buttons{
-  margin:0em 1em 0em 1em;
-}
 
-.toUpper{
-  text-transform:uppercase;
-}
-
-.buttons > p, text{
-  display:block;
-  padding:0em 0.25em;
-  margin:0em;
-  font-family:arial, helvetica;
-  text-align:center;
-  line-height:1.5em;
-  font-size:0.9em;
-
-  -ms-user-select: none;
-  user-select: none;
-}
-
-.buttons *.selected{
-  background-color:#0d73d6;
-  color:#ffffff;
-}
 
 .panel{
   width:100%;
@@ -215,12 +191,6 @@ div.reading.centered{
   font-weight:bold;
 }
 
-.first-letter{
-  font-weight:bold;
-  font-size:5em;
-}
-
-
 #metro-interactive select{
   /*height:40px;*/
   padding:0px 5px 0px 5px;
@@ -230,19 +200,6 @@ div.reading.centered{
   font-family:Arial, sans;
   display:block;
 }
-
-#metro-interactive .font1x{
-  font-size:1.2em;
-}
-
-#metro-interactive .font2x{
-  font-size:1.6em;
-}
-
-#metro-interactive .font3x{
-  font-size:2em;
-}
-
 
 p.subway-tile-title{
   margin:1em 0em 2em 0em;
@@ -324,16 +281,6 @@ div.subway-tile.click-for-more-info .more-info-available{
   display:block;
 }
 
-/*div.subway-tile .more-info-available:after{
-  content:"+ Click for more";
-  color:#0d73d6;
-  position:absolute;
-  right:3em;
-  bottom:0px;
-  font-size:13px;
-  font-weight:bold;
-  line-height:13px;
-}*/
 
 #metro-interactive .split50{
   max-width:1400px;
@@ -356,6 +303,36 @@ div.subway-tile.click-for-more-info .more-info-available{
 #metro-interactive img {
   width:100%;
   height:auto;
+}
+
+#metro-interactive .buttons{
+  margin:0em 0em 0em 0em;
+}
+
+#metro-interactive .buttons > p{
+  display:block;
+  padding:0.75em 1.25em;
+  border:1px solid #aaaaaa;
+  border-radius:5px;
+  cursor:pointer;
+  margin:0px 10px 10px 0em;
+  text-align:center;
+  line-height:1.5em;
+  font-size:1em;
+
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  -webkit-box-shadow: 4px 4px 10px 0px rgba(0,0,0,0.25);
+  -moz-box-shadow: 4px 4px 10px 0px rgba(0,0,0,0.25);
+  box-shadow: 4px 4px 10px 0px rgba(0,0,0,0.25);
+}
+
+#metro-interactive .buttons *.selected{
+  background-color:#0d73d6;
+  border-color:#0d73d6;
+  color:#ffffff;
 }
 
 @media (min-width:0px){

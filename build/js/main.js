@@ -42,14 +42,12 @@ function main(){
     filter2.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");      
 
     var access_map_wrap = d3.select("#access-map");
-    access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
     var subscription_map_wrap = d3.select("#subscription-map");
-    subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
 
-    var tract_map_wrap = d3.select("#tract-map").style("max-width","1600px");
+    var tract_map_wrap = d3.select("#tract-map").style("max-width","1600px").style("margin","0px auto");
     tract_maps(tract_map_wrap.node());
 
     var inter = interventions();

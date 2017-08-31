@@ -372,6 +372,7 @@ function aesthetics(data){
 			range:range,
 			min:range[0],
 			max:range[1],
+			absmax:d3.max([Math.abs(range[0]), Math.abs(range[1])]),
 			mean:mean,
 			median:median,
 			sd:sd,
@@ -493,6 +494,7 @@ function aesthetics(data){
 		aes.quantize = function(palette){
 			scale_type = "quantize";
 			if(arguments.length == 0){pal = null;}
+			else{pal = palette;}
 			
 			set_scale();
 			return aes;
@@ -501,6 +503,7 @@ function aesthetics(data){
 		aes.quantile = function(palette){
 			scale_type = "quantile";
 			if(arguments.length == 0){pal = null;}
+			else{pal = palette;}
 			
 			set_scale();
 			return aes;
@@ -512,6 +515,18 @@ function aesthetics(data){
 				lpal.low = null;
 				lpal.high = null;
 				lpal.mid = "#ffffff";
+			}
+			else if(arguments.length==1){
+				lpal.low = low;
+			}
+			else if(arguments.length==2){
+				lpal.low = low;
+				lpal.high = high;
+			}
+			else{
+				lpal.low = low;
+				lpal.high = high;
+				lpal.mid = mid;
 			}
 			
 			set_scale();
@@ -541,11 +556,48 @@ function aesthetics(data){
 	var aes_radius = function(variable){
 		var distribution = distro(variable);
 
+		var maxR = 25;
+		var minR = 0;
+		var missingR = minR;
+
+		var scale = d3.scaleSqrt().domain([0, distribution.absmax]).range([minR, maxR]);
+
 		var aes = {};
 
-		aes.radii = function(min_radii, max_radii){
+		function set_scale(){
+			aes.map = function(record){
+				var v = record != null ? record[variable] : null;
+				return v==null ? missingR : scale(v); 
+			};
+		}
 
+		aes.radii = function(min_radii, max_radii, missing_r){
+			if(arguments.length == 0){
+				return {min:minR, max:maxR}
+			}
+			else if(arguments.length == 1){
+				minR = min_radii;
+			}
+			else if(arguments.length == 2){
+				minR = min_radii;
+				maxR = max_radii;
+			}
+			else{
+				minR = min_radii;
+				maxR = max_radii;	
+				missingR = missing_r;			
+			}
+
+			scale = d3.scaleSqrt().domain([0, distribution.absmax]).range([minR, maxR]);
+
+			set_scale();
+
+			return aes;
 		};
+
+		set_scale(); //initialize
+
+		return aes;
 		
 	};
 
@@ -730,8 +782,6 @@ function layer(){
 	var svg = map.svg.append("g"); //just a wrapper -- to avoid reordering layers, don't touch this
 	var svg_group = svg.append("g"); //provides a quick way to remove all sub-layers
 
-	var get_geo_id; //data accessor
-
 	//record any warnings about the layer
 	var warnings = {
 		duplicates: null,
@@ -746,6 +796,41 @@ function layer(){
 	L.is_poly = function(){
 		return !is_points;
 	};
+
+	//show/hide the layer -- optionally specify a transition duration for fade in/out
+	L.hide = function(dur, callback){
+
+		if(arguments.length > 0 && !!dur){
+			svg.transition().duration(dur).style("opacity",0).on("end", function(){
+				svg.style("visibility","hidden").style("pointer-events","none");
+				if(!!callback){callback();}
+			});
+		}
+		else{
+			svg.interrupt().style("opacity",0).style("visibility","hidden").style("pointer-events","none");
+			if(!!callback){callback();}
+		}
+
+		return L;
+	};
+
+	L.show = function(dur, callback){
+
+		svg.style("visibility","visible").style("pointer-events",null);
+
+		if(arguments.length > 0 && !!dur){
+			svg.transition().duration(dur).style("opacity",1).on("end", function(){
+				if(!!callback){callback();}
+			});
+		}
+		else{
+			svg.interrupt().style("opacity",1);
+			if(!!callback){callback();}
+		}
+
+		return L;
+	};
+
 
 	//set aesthetics based on distribution in data, if passed, or in matched data (default)
 	//matched is created in qa(), so call this after qa()
@@ -962,10 +1047,10 @@ function layer(){
 
 		//set the geo id accessor for each record in data
 		if(typeof geo_id !== "function"){
-			get_geo_id = function(d){return d[geo_id]};
+			var get_geo_id = function(d){return d[geo_id]+""};
 		}
 		else{
-			get_geo_id = geo_id;
+			var get_geo_id = geo_id;
 		}
 
 		//de duped
@@ -1241,7 +1326,7 @@ function layer(){
 	return L;
 }
 
-//this is a simple function for adding a 
+//this is a simple function for adding an arbitrary layer 
 
 function layer_free(draw_fn){
 
@@ -1251,7 +1336,8 @@ function layer_free(draw_fn){
 	//this is why you shouldn't call layer() directly, layers are created with the parent map object as this; all layers share same projection
 	var map = this;
 	//console.log(map);
-	var svg = map.svg.append("g"); //just a wrapper -- to avoid reordering layers, don't touch this
+	var svg = map.svg.append("g"); //just a wrapper for the layer -- to avoid reordering layers, don't touch this
+	
 	var svg_group = svg.append("g"); //provides a quick way to remove all sub-layers
 
 	var get_geo_id; //data accessor
@@ -1269,10 +1355,45 @@ function layer_free(draw_fn){
 		return false;
 	};
 
+	L.hide = function(dur, callback){
+
+
+		if(arguments.length > 0 && !!dur){
+			svg.transition().duration(dur).style("opacity",0).on("end", function(){
+				svg.style("visibility","hidden").style("pointer-events","none");
+				if(!!callback){callback();}
+			});
+		}
+		else{
+			svg.interrupt().style("opacity",0).style("visibility","hidden").style("pointer-events","none");
+			if(!!callback){callback();}
+		}
+
+		return L;
+	};
+
+	L.show = function(dur, callback){
+
+		svg.style("visibility","visible").style("pointer-events",null);
+
+		if(arguments.length > 0 && !!dur){
+			svg.transition().duration(dur).style("opacity",1).on("end", function(){
+				if(!!callback){callback();}
+			});
+		}
+		else{
+			svg.interrupt().style("opacity",1);
+			if(!!callback){callback();}
+		}
+
+		return L;
+	};
+
+
 	//draw the layer
 	L.draw = function(resize_only){
-		//for now, resize_only has no effect
-		draw_fun(map.get_dim());
+		var context = {dimensions: map.get_dim(), svg:svg_group};
+		draw_fn.call(context);
 	};
 	
 	return L;
@@ -1379,7 +1500,8 @@ function geo_api_sync(){
 		tract: "poly",
 		metro: "point",
 		place: "point",
-		us: "poly"
+		us: "poly",
+		lakes: "poly"
 	};	
 
 	api.get = function(geo, point_or_poly){
@@ -1445,8 +1567,7 @@ function mapd(root_container){
 	//...container_wrap (holds map) -- eligible space for map -- width remains at 100% of parent
 	//......outer_wrap (parent of svg, canvas, tooltip) -- width of this element is set
 	//.........map_canvas (canvas background)
-	//.........map_svg (main svg)
-	//............map_group (root group of svg) -- allows for easy removal of layers by replacing this <g> with new one
+	//.........map_svg (main svg) -- all drawing is done on a root <g> under map_svg
 	//.........tooltip_wrap -- tooltip
 
 	var dom_root = d3.select(root_container);
@@ -1476,7 +1597,6 @@ function mapd(root_container){
 
 	var map_canvas = outer_wrap.append("canvas").style("width","100%").style("height","100%").style("position","absolute").style("z-index","1");
 	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%").style("position","relative").style("z-index","2");
-	var map_group = map_svg.append("g");
 
 	//outer_wrap.append("div").style("width","50%").style("height","50%").style("position","absolute")
 	//						.style("border","1px solid orange").style("top","0px").style("z-index","10");
@@ -1490,14 +1610,14 @@ function mapd(root_container){
 								 .style("left","-100px")
 								 .style("visibility","hidden");
 
-	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","30%").style("left","25px")
+	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","15px").style("left","80%")
 												.style("width","70px").style("height","50px")
 												.style("z-index","10")
 												.style("cursor","pointer")
 												.style("padding","10px 15px")
-												.style("border","1px solid #eeeeee")
+												.style("border","1px solid #dddddd")
 												.style("border-radius","5px")
-												.style("background-color","rgba(255,255,255,0.7)");
+												.style("background-color","rgba(255,255,255,0.8)");
 
 	var zoom_svg = zoom_button.append("svg").attr("width","40px").attr("height","30px")
 									.attr("viewBox","0 0 40 30");
@@ -1524,7 +1644,7 @@ function mapd(root_container){
 
 	//public map object								 
 	var map = {
-		svg:map_group,
+		svg: map_svg.append("g"),
 		canvas:map_canvas
 	};
 
@@ -1538,6 +1658,7 @@ function mapd(root_container){
 		return l;
 	};
 
+	//the draw function is called with this set to {dimensions: current, global dimensions, svg: <g> element on which to draw layer}
 	map.layer_free = function(draw_fn){
 		var l = layer_free.call(map, draw_fn);
 		layers.push(l);
@@ -1688,6 +1809,7 @@ function mapd(root_container){
 	};
 	map.set_dim(); //initialize dimensions
 
+	//get the current dimensions of the map -- only reset on calls to map.set_dim (this is important to avoid layers independently calculating dims)
 	map.get_dim = function(){
 		return dimensions;
 	};
@@ -1782,42 +1904,77 @@ function mapd(root_container){
 	map.projection(null); 
 
 	//dragging and zooming behavior
+
+	//enable/disable zoom/drag
+	var zoom_enabled = true;
+	map.zoomable = function(a){
+		if(arguments.length > 0 && !a){
+			zoom_enabled = false;
+			zoom_button.style("display","none");
+			//console.log("turn off zoom");
+		}
+		else{
+			zoom_enabled = true;
+			zoom_button.style("display","block");
+			//console.log("turn on zoom");
+		}
+		return map;
+	};
+
 	var drag_start_coords;
-	map_svg.call(d3.drag().on("drag", function(d){
-		var x = d3.event.x;
-		var y = d3.event.y;
-		
-		var delta_x = g_translate[0] + (x-drag_start_coords[0]);
-		var delta_y = g_translate[1] + (y-drag_start_coords[1]);
+	var drag = d3.drag().on("drag", function(d){
+		if(zoom_enabled){
+			var x = d3.event.x;
+			var y = d3.event.y;
+			
+			var delta_x = g_translate[0] + (x-drag_start_coords[0]);
+			var delta_y = g_translate[1] + (y-drag_start_coords[1]);
 
-		map.svg.attr("transform", "translate("+delta_x+","+delta_y+")");
-		//console.log(delta_x + ", " + delta_y);
+			map.svg.attr("transform", "translate("+delta_x+","+delta_y+")");
+			//console.log(delta_x + ", " + delta_y);
+		}
 	}).on("start", function(d){
-		drag_start_coords = [d3.event.x, d3.event.y];
+		if(zoom_enabled){
+			drag_start_coords = [d3.event.x, d3.event.y];
+		}
 	}).on("end", function(d){
-		var x = d3.event.x;
-		var y = d3.event.y;	
-		
-		//record the translate for use in subsequent drag events
-		g_translate[0] = g_translate[0] + (x-drag_start_coords[0]);
-		g_translate[1] = g_translate[1] + (y-drag_start_coords[1]);	
+		if(zoom_enabled){
+			var x = d3.event.x;
+			var y = d3.event.y;	
+			
+			//record the translate for use in subsequent drag events
+			g_translate[0] = g_translate[0] + (x-drag_start_coords[0]);
+			g_translate[1] = g_translate[1] + (y-drag_start_coords[1]);	
 
-		//determine the "relative center": for the point in the center of the current view, what is the relative position of that
-		//point in the full range of projected lon,lat; e.g. [0.5,0.5] is the center, [0.75, 0.25] is top right quadrant
-		var tx_center = [center[0]-g_translate[0], center[1]-g_translate[1]];
-		var width = center[0]*2*zoom_scalar;
-		var height = center[1]*2*zoom_scalar;
-		relative_center = [tx_center[0]/width, tx_center[1]/height]; //what position in [0,1] of map ranges is in center of view
-
-	}) );
+			//determine the "relative center": for the point in the center of the current view, what is the relative position of that
+			//point in the full range of projected lon,lat; e.g. [0.5,0.5] is the center, [0.75, 0.25] is top right quadrant
+			var tx_center = [center[0]-g_translate[0], center[1]-g_translate[1]];
+			var width = center[0]*2*zoom_scalar;
+			var height = center[1]*2*zoom_scalar;
+			relative_center = [tx_center[0]/width, tx_center[1]/height]; //what position in [0,1] of map ranges is in center of view
+		}
+	});
+	map_svg.call(drag);
 
 	var zoom_index = 0;
 	var zoom_scale = [1,2,4,8,14];
 	var zoom_colors = ["#ffffff", "#dddddd", "#bbbbbb", "#999999", "#777777"];
 	zoom_button.on("mousedown", function(){
-		d3.event.stopPropagation();
-		
-		zoom_index = (++zoom_index) % zoom_scale.length;
+		if(zoom_enabled){
+			d3.event.stopPropagation();
+			map.zoom();
+		}
+	});
+
+	map.zoom = function(level){
+
+		if(arguments.length > 0){
+			zoom_index = level;
+		}
+		else{
+			zoom_index = (++zoom_index) % zoom_scale.length;
+		}
+
 		zoom_scalar = zoom_scale[zoom_index];
 
 		if(zoom_index == zoom_scale.length-1){
@@ -1828,15 +1985,23 @@ function mapd(root_container){
 			zoom_out_g.style("visibility","hidden");
 			zoom_in_g.style("visibility","visible");
 		}
-		//zoom_button.style("background-color", zoom_colors[zoom_index]);
+		
+		//re-center upon drawing
+		if(zoom_index === 0){
+			g_translate = [0,0];
+			relative_center = [0.5, 0.5];			
+		}
 
 		//force a redraw to incorporate new zoom_scalar
-		map.draw(true, true);
-	});
+		map.draw(true, true);		
+
+		return map;
+	};
 
 
 	//draw all layers
 	map.draw = function(resize_only, force){
+		//console.log("draw");
 		//before drawing set dimensions
 		//console.log(aspect);
 		var dimensions_changed = map.set_dim().changed;
@@ -2000,9 +2165,24 @@ function tract_maps(container){
 
 	var map = mapd(map_wrap.node());
 
-	var menu_wrap = map.menu();
-	var select = menu_wrap.append("div");
-	var filter_wrap = menu_wrap.append("div").classed("c-fix",true).style("padding","5px 0px 2em 0px");
+	var menu_wrap = map.menu().style("margin-bottom","1em");
+	
+
+	var menu_inner = menu_wrap.append("div").style("max-width","800px")
+							  .style("margin","0px auto 2em auto")
+							  .style("padding","0em 0px");
+
+	var select = menu_inner.append("div");
+
+		menu_inner.append("p").text("SHOW NEIGHBORHOODS WITH:")
+							  .style("margin","1.5em 0em 0em 0em")
+							  .style("font-size","0.85em")
+							  .style("color", "#555555")
+							  .style("padding", "0px 0px 6px 6px")
+							  .style("line-height","1em")
+							  ;
+
+	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
 
 	var alldata;
 
@@ -2011,6 +2191,8 @@ function tract_maps(container){
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
+
+		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
 		
 		if(!!alldata){
 
@@ -2104,43 +2286,40 @@ function tract_maps(container){
 	});
 
 	//build filters
+	var filter_selections = {av:false, pov:false, ki:false, ba:false};
 	function build_filters(layer){
-		var filters_update = filter_wrap.selectAll("div.filter").data(["av","pov","ki","ba"]);
+		var filters_update = filter_wrap.selectAll("p.filter").data(["av","pov","ki","ba"]);
 		filters_update.exit().remove();
-		var filters_enter = filters_update.enter().append("div").classed("filter",true);
-			filters_enter.append("p").text(function(d){
-				var text = {av:"Availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
-				return text[d];
-			});
+		var filters_enter = filters_update.enter().append("p").classed("filter",true);
 		var filters = filters_enter.merge(filters_update);
-			filters.style("float","left").style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
-					.style("border","1px solid #aaaaaa")
-					.style("border-radius","5px");
+			filters.style("float","left")
+				   .text(function(d){
+						var text = {av:"No availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
+						return text[d];
+					});
+
+			//.style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
+			//		.style("border","1px solid #aaaaaa")
+			//		.style("border-radius","5px");
 
 		filters.on("mousedown",function(d){
-			if(d=="av"){
-				layer.style("opacity",function(d){
-					return d.av=="N" ? "0.05" : "1";
-				});
-			}
 
-			if(d=="pov"){
-				layer.style("opacity",function(d){
-					return d.pov < 0.2 ? "0.05" : "1";
-				});
-			}
+			d3.select(this).classed("selected", filter_selections[d] = !filter_selections[d]);
 
-			if(d=="ki"){
-				layer.style("opacity",function(d){
-					return d.ki < 0.23 ? "0.05" : "1";
-				});
-			}
+			//passing these tests means showing the geo (e.g. no availability, high poverty)
+			var av_test = function(d){return !filter_selections.av || (filter_selections.av && d.av == "N")};
+			var pov_test = function(d){return !filter_selections.pov || (filter_selections.pov && d.pov >= 0.2)};
+			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.3)};
+			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba < 0.28)};
 
-			if(d=="ba"){
-				layer.style("opacity",function(d){
-					return d.ba < 0.28 ? "0.05" : "1";
-				});
-			}
+			var composite_filter = function(d){
+				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				return show ? "1" : "0.05";
+			};
+
+			layer.style("opacity",function(d){
+				return composite_filter(d);
+			});
 
 			layer.draw();
 		});
@@ -2159,7 +2338,9 @@ function subscription_bubble_map(container){
 	var wrap = d3.select(container);
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-                       .style("min-height","400px");
+                       .style("min-height","400px")
+                       .style("max-width","1600px")
+                       .style("margin","0px auto");
 
 	var map = mapd(map_wrap.node());
 	//var alldata;
@@ -2183,7 +2364,7 @@ function subscription_bubble_map(container){
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
 
-		metro_layer.aes.fill("pcat_10x1_5");
+		metro_layer.aes.fill("pcat_10x1_5").quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 		map.draw();
 
@@ -2199,9 +2380,14 @@ function access_bubble_map(container){
 	var wrap = d3.select(container);
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
-                       .style("min-height","400px");
+                       .style("min-height","400px")
+                       .style("max-width","1600px")
+                       .style("margin","0px auto");
 
 	var map = mapd(map_wrap.node());
+
+	var menu_wrap = map.menu();
+	var buttons = menu_wrap.append("div").classed("buttons", true).style("float","right");
 	//var alldata;
 
 	d3.json("./data/metro_access.json", function(error, data){
@@ -2218,15 +2404,148 @@ function access_bubble_map(container){
 		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
 		var state_layer = map.layer().geo(stategeo).attr("fill","#ffffff");
 		
-		var projection = d3.geoAlbersUsa();
-		map.projection(projection);
+		map.projection(d3.geoAlbersUsa()).zoomable(false); //set albers composite projection as map proj
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
+		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']).flip();
+		var radius = metro_layer.aes.r("numwo");
+			radius.radii(4, 40);
 
-		metro_layer.aes.fill("share_access");
+		//handle redrawing axes in free layer
+		var show_scatter = true; //what to do
+		var scatter_is_shown = true; //what is there
+		var initial_draw = true; //one-time use
 
+		var x_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.shwo}));
+		var y_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.density}));
+		
+
+		//scatter plot layers
+		var free_layer = map.layer_free(draw_free).hide(); //hold axes
+
+		function draw_free(){
+			var dims = this.dimensions;
+			var svg = this.svg;
+			var proj = map.projection();
+
+			if(dims.width < 480){
+				radius.radii(2,20);
+			}
+			else{
+				radius.radii(4,40);
+			}
+
+			x_scale.range([50, dims.width-50]);
+			y_scale.range([dims.height-50, 50]);
+
+			var u = svg.selectAll("circle").data(metros, function(d){return d.geo_id});
+			u.exit().remove();
+			var dots = u.enter().append("circle").merge(u).attr("r", function(d){
+				return radius.map(metro_layer.lookup(d.geo_id));
+			}).attr("fill", function(d){
+				return filler.map(metro_layer.lookup(d.geo_id));
+			}).attr("stroke","#ffffff");
+
+			//only animate on init and when changing views
+			var animate = !initial_draw && show_scatter != scatter_is_shown;
+
+			if(show_scatter){
+				us_layer.hide();
+				state_layer.hide(animate ? 1000 : 0);
+				free_layer.show();
+				metro_layer.hide();
+
+				if(animate){
+					dots.interrupt()
+						.attr("cx", function(d,i){return proj([d.lon,d.lat])[0]})
+						.attr("cy", function(d,i){return proj([d.lon,d.lat])[1]})
+						.transition().duration(3000).attr("cx", function(d,i){
+							return x_scale(metro_layer.lookup(d.geo_id).shwo);
+						}).attr("cy", function(d,i){
+							return y_scale(metro_layer.lookup(d.geo_id).density);
+						});
+				}
+				else{
+					dots.interrupt().attr("cx", function(d,i){
+						return x_scale(metro_layer.lookup(d.geo_id).shwo);
+					}).attr("cy", function(d,i){
+						return y_scale(metro_layer.lookup(d.geo_id).density);
+					});					
+				}
+
+				scatter_is_shown = true;
+			}
+			else{
+				//show map				
+				if(animate){
+					state_layer.show(2000);
+					dots.interrupt()
+						.attr("cx", function(d,i){
+							return x_scale(metro_layer.lookup(d.geo_id).shwo);
+						}).attr("cy", function(d,i){
+							return y_scale(metro_layer.lookup(d.geo_id).density);
+						})
+						.transition().duration(3000)
+						.attr("cx", function(d,i){return proj([d.lon,d.lat])[0]})
+						.attr("cy", function(d,i){return proj([d.lon,d.lat])[1]})
+						.on("end",function(d,i){
+							if(i==99){
+								us_layer.show(400);
+								free_layer.hide(200);
+								metro_layer.show();
+							}
+						});
+				}
+				else{
+					state_layer.show();
+					dots.interrupt()
+						.attr("cx", function(d,i){return proj([d.lon,d.lat])[0]})
+						.attr("cy", function(d,i){return proj([d.lon,d.lat])[1]});
+
+						us_layer.show();
+						free_layer.hide();
+						metro_layer.show();
+				}
+
+				scatter_is_shown = false;
+			}
+
+			initial_draw = false;			
+		}
+
+		//initialize map
 		map.draw();
 
+		function draw_scatter(){
+			show_scatter = true;
+			map.zoomable(false);
+			map.zoom(0); //zoom out, recenter, -- this also calls draw
+		}
+
+		function draw_map(){
+			show_scatter = false;
+			map.zoomable();
+			map.draw();
+		}
+
+
+		var toggle = buttons.append("p").text("Show map");
+
+		toggle.on("mousedown", function(){
+			show_scatter = !show_scatter;
+			if(show_scatter){
+				draw_scatter();
+				toggle.text("Show map");
+			}
+			else{
+				draw_map();
+				toggle.text("Show plot");
+			}
+		});
+
+
+
+	
 	});
 
 }
@@ -2449,7 +2768,7 @@ function interventions(){
 
 	//use 1: layout all the interventions in a large grid with text
 	I.grid = function(container, local_policy){
-		var wrap = d3.select(container);
+		var wrap = d3.select(container).style("max-width","1600px").style("margin","0px auto");
 
 		var data = arguments.length > 1 && !!local_policy ? local.map(function(d){return {id:d, text:policy2[d]}}) : 
 															federal.map(function(d){return {id:d, text:policy2[d]}}); 
@@ -2526,7 +2845,7 @@ function interventions(){
 					  .style("padding","10px")
 					  .style("border","1px solid #0d73d6")
 					  .style("background-color","rgba(255,255,255,0.8)")
-					  .style("border-radius","30px")
+					  .style("border-radius","5px")
 					  ;
 
 				var zoom_svg = uen.select("svg").attr("width","40px")
@@ -2703,14 +3022,12 @@ function main(){
     filter2.append("feBlend").attr("in","SourceGraphic").attr("in2","blurout").attr("mode","normal");      
 
     var access_map_wrap = d3.select("#access-map");
-    access_map_wrap.append("p").text("User to toggle between scatter plot of pop density vs access and this map which shows SHARE OF POP IN NEIGHBORHOODS WITH 25 MBPS ACCESS");
     access_bubble_map(access_map_wrap.node());
 
     var subscription_map_wrap = d3.select("#subscription-map");
-    subscription_map_wrap.append("p").text("User to toggle between subscription rates. Right now: Share of metro pop that lives in a HIGH subscription neighborhood.");
     subscription_bubble_map(subscription_map_wrap.node());
 
-    var tract_map_wrap = d3.select("#tract-map").style("max-width","1600px");
+    var tract_map_wrap = d3.select("#tract-map").style("max-width","1600px").style("margin","0px auto");
     tract_maps(tract_map_wrap.node());
 
     var inter = interventions();

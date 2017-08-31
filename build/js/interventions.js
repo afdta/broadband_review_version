@@ -221,7 +221,7 @@ export default function interventions(){
 
 	//use 1: layout all the interventions in a large grid with text
 	I.grid = function(container, local_policy){
-		var wrap = d3.select(container);
+		var wrap = d3.select(container).style("max-width","1600px").style("margin","0px auto");
 
 		var data = arguments.length > 1 && !!local_policy ? local.map(function(d){return {id:d, text:policy2[d]}}) : 
 															federal.map(function(d){return {id:d, text:policy2[d]}}); 
@@ -300,7 +300,7 @@ export default function interventions(){
 					  .style("padding","10px")
 					  .style("border","1px solid #0d73d6")
 					  .style("background-color","rgba(255,255,255,0.8)")
-					  .style("border-radius","30px")
+					  .style("border-radius","5px")
 					  ;
 
 				var zoom_svg = uen.select("svg").attr("width","40px")

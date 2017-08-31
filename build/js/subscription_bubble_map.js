@@ -9,6 +9,8 @@ export default function subscription_bubble_map(container){
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
+                       .style("max-width","1600px")
+                       .style("margin","0px auto")
                        ;
 
 	var map = mapd(map_wrap.node());
@@ -33,7 +35,7 @@ export default function subscription_bubble_map(container){
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
 
-		metro_layer.aes.fill("pcat_10x1_5");
+		metro_layer.aes.fill("pcat_10x1_5").quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 		map.draw();
 
