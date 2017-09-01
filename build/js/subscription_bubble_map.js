@@ -37,6 +37,8 @@ export default function subscription_bubble_map(container){
 						  .style("line-height","1em")
 						  ;
 
+	map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
+
 	var menu = menu_wrap.append("div").classed("c-fix buttons",true);
 
 	var defaul = "low";
@@ -48,7 +50,7 @@ export default function subscription_bubble_map(container){
 						.style("visibility", "hidden")
 						;	
 
-	d3.json(dir.url("data", "metro_adoption.json"), function(error, data){
+	d3.json(dir.url("metdata", "metro_adoption.json"), function(error, data){
 		//map.data(data, "tract");
 		//alldata = data;
 
@@ -65,9 +67,26 @@ export default function subscription_bubble_map(container){
 		var projection = d3.geoAlbersUsa();
 		map.projection(projection);
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").attr("stroke","#999999");
 
-		metro_layer.aes.fill(defaul).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+		//fill color function
+		var filler = metro_layer.aes.fill(defaul).quantize() //(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+		
+		//format legend
+		var pct = d3.format(",.1%");
+		var ranger = function(v){
+			return pct(v[0]) + "–" + pct(v[1]);
+		}
+		var ranker = function(v){
+			return Math.ceil(v[0]) + "–" + Math.floor(v[1]);
+		}
+
+		function draw_legend(title, format){
+			map.legend.swatch(filler.ticks(), format, title);
+		}
+
+		draw_legend("Share of pop. in low subscription neighborhoods", ranger);
+
 
 		map.draw();
 
@@ -77,7 +96,29 @@ export default function subscription_bubble_map(container){
 				return i==ii;
 			});
 
-			metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+			if(d=="rank"){
+				filler = metro_layer.aes.fill(d).quantize(['#a50f15','#ef3b2c','#999999','#6baed6','#084594']).flip();
+			}
+			else{
+				filler = metro_layer.aes.fill(d).quantize();
+			}
+
+			if(d=="low"){
+				var title = "Share of pop. in low subscription neighborhoods";
+			}
+			else if(d=="mod"){
+				var title = "Share of pop. in moderate subscription neighborhoods";
+			}
+			else if(d=="high"){
+				var title = "Share of pop. in high subscription neighborhoods";
+			}
+			else if(d=="rank"){
+				var title = "Composite ranking (1 = best performance)";
+			}
+
+			draw_legend(title, d=="rank" ? ranker : ranger);
+
+			//metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 			map.draw();
 		});

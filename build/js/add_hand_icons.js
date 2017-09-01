@@ -8,7 +8,7 @@ export default function add_hand_icons(container){
 		var spans = d3.selectAll('span.hand-icon');
 	}
 
-	var url = dir.url("data", "hand_icon.png");
+	var url = dir.url("graphics", "hand_icon.png");
 
 	var images = spans.selectAll("img").data([url]);
 		images.exit().remove();

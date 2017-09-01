@@ -1655,11 +1655,11 @@ function legend(container){
 							.style("font-size","13px");
 
 
-			var text = svg.append("text").text(title).attr("x", "50%").attr("text-anchor","middle").attr("y",12);
+			var title_text = svg.append("text").text(title).attr("x", "50%").attr("text-anchor","middle").attr("y",12);
 
 			setTimeout(function(){
 				var box = g.node().getBoundingClientRect();
-				var box1 = text.node().getBoundingClientRect();
+				var box1 = title_text.node().getBoundingClientRect();
 				var w = box.right - box.left;
 				var w1 = box1.right - box1.left;
 				svg.attr("width", Math.max(w1,w));
@@ -1723,7 +1723,7 @@ function legend(container){
 				var title_text = svg.append("text").text(title).attr("x", "0%").attr("text-anchor","start").attr("y",12);
 				setTimeout(function(){
 					var box = g.node().getBoundingClientRect();
-					var box1 = text.node().getBoundingClientRect();
+					var box1 = title_text.node().getBoundingClientRect();
 					var w = box.right - box.left;
 					var w1 = box1.right - box1.left;
 					svg.attr("width", Math.max(w1,w));
@@ -2349,17 +2349,25 @@ function tract_maps(container){
 					   .style("background-color","transparent")
 					   .append("div");
 
-	var geoCache = {};
-	var topoCache = {};
-	var borderCache = {};
+	var geoCache = {}; //tract geo
+	var dataCache = {}; //tract data 
+	var cityCache = {}; //primary city geo
+
+	//var topoCache = {};	//raw topo, used to create geoCache data
+	var borderCache = {}; //derived from topo (if geo available, so is border)
+
 	function get_and_map(cbsa){
-		if(geoCache.hasOwnProperty(cbsa)){
-			map_tract(geoCache[cbsa], topoCache[cbsa], borderCache[cbsa]);
+		if(geoCache.hasOwnProperty(cbsa) && dataCache.hasOwnProperty(cbsa) && cityCache.hasOwnProperty(cbsa)){
+			map_tract(dataCache[cbsa], geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
 		}
 		else{
-			var uri = "./data/tract_json/"+cbsa+".json";
+			//once these are loaded, you can map it
+			var data_loaded = false;
+			var topo_loaded = false;
+			var city_loaded = false;
 
-			d3.json(uri, function(error, topo){
+			//get topo
+			d3.json(dir.url("topo", cbsa+".json"), function(error, topo){
 				if (error) throw error;
 
 				var geoj = topojson.feature(topo, topo.objects.tracts);
@@ -2383,14 +2391,48 @@ function tract_maps(container){
 				};
 
 				geoCache[cbsa] = geoj; //cache it
-				topoCache[cbsa] = topo;
+				//topoCache[cbsa] = topo;
 				borderCache[cbsa] = border_fc;
 
-				map_tract(geoj, topo, border_fc);		
+				topo_loaded = true;
+
+				if(data_loaded && city_loaded){
+					map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc);
+				}		
+			});
+
+			//get data
+			d3.json(dir.url("data", cbsa+".json"), function(error, dat){
+				if (error) throw error;
+
+				dataCache[cbsa] = dat;
+
+				data_loaded = true;
+
+				if(topo_loaded && city_loaded){
+					map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
+				}
+
+			});
+
+			//load up city topo file
+			d3.json(dir.url("citytopo", cbsa+".json"), function(error, data){
+				if (error) throw error;
+				
+				var citygeo = topojson.feature(data, data.objects.geos);
+
+				cityCache[cbsa] = citygeo;
+
+				city_loaded = true;
+
+				if(topo_loaded && data_loaded){
+					map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa]);
+				}
 			});
 		}
 	}
 
+	//create map object and menu areas
 	var map = mapd(map_wrap.node());
 
 	var menu_wrap = map.menu().style("margin-bottom","1em");
@@ -2409,89 +2451,99 @@ function tract_maps(container){
 							  .style("color", "#555555")
 							  .style("padding", "0px 0px 6px 6px")
 							  .style("line-height","1em")
+							  .classed("no-select",true)
 							  ;
-
 	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
 
-	var alldata;
 
-	function map_tract(geoj, topo, border){
+	//do the mapping after all data has been loaded
+	function map_tract(tract_data, geoj, citygeo, border){
 		map.clear();
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
 
 		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
-		
-		if(!!alldata){
+		tract_layer.data(tract_data, "tr");
 
-			tract_layer.data(alldata, "tr");
-
-			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+		var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
+		tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 
 
-			build_filters(tract_layer);
+		build_filters(tract_layer);
 
-			//temp
-			//	geoj.features.forEach(function(d){
-			//		var id = d.properties.geo_id;
-			//		d.properties.place_fips = tract_layer.lookup(id).pl;
-			//	});
 
-			//add mesh layer
-			try{
-				var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
-						var a_place = tract_layer.lookup(a.properties.geo_id).pl;
-						var b_place = tract_layer.lookup(b.properties.geo_id).pl;
-
-						var keep = false;
-
-						if((!!a_place || !!b_place) && (a_place !== b_place)){
-							var keep = true; 
-						}
-						else if(!!a_place && a===b){
-							var keep = true;
-						}
-
-						return keep;
-
-					});
-
-			}
-			catch(e){
-				var mesh = null;
-			}
-			finally{
-				if(mesh != null){
-					var mesh_fc = {
-						"type": "FeatureCollection",
-						"bbox": geoj.bbox,
-						"features": [
-							{
-								"type": "Feature",
-								"geometry": mesh,
-								"properties": {
-									"geo_id":"primary_cities"
-								}
-							}	
-						]
-					};
-
-					//add two mesh layers
-					var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
-															 .attr("fill","transparent")
-															 .attr("stroke-width","3.5")
-															 .style("pointer-events","none");
-					var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
-										 .attr("fill","transparent")
-										 .attr("stroke-width","1.5")
-										 .attr("stroke-dasharray","4,2")
-										 .style("pointer-events","none");
-				}
-			}
+		//add city boundaries
+		try{
+			//add two mesh layers
+			var mesh_layer0 = map.layer().geo(citygeo).attr("stroke","#FFD101")
+													 .attr("fill","none")
+													 .attr("stroke-width","3.5")
+													 .style("pointer-events","none");
+			var mesh_layer1 = map.layer().geo(citygeo).attr("stroke","#695600")
+								 .attr("fill","none")
+								 .attr("stroke-width","1.5")
+								 .attr("stroke-dasharray","4,2")
+								 .style("pointer-events","none");
 
 		}
+		catch(e){
+			//no-op
+		}
+
+		//add mesh layer
+		/*try{
+			var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+					var a_place = tract_layer.lookup(a.properties.geo_id).pl;
+					var b_place = tract_layer.lookup(b.properties.geo_id).pl;
+
+					var keep = false;
+
+					if((!!a_place || !!b_place) && (a_place !== b_place)){
+						var keep = true; 
+					}
+					else if(!!a_place && a===b){
+						var keep = true;
+					}
+
+					return keep;
+
+				});
+
+		}
+		catch(e){
+			var mesh = null;
+		}
+		finally{
+			if(mesh != null){
+				var mesh_fc = {
+					"type": "FeatureCollection",
+					"bbox": geoj.bbox,
+					"features": [
+						{
+							"type": "Feature",
+							"geometry": mesh,
+							"properties": {
+								"geo_id":"primary_cities"
+							}
+						}	
+					]
+				}
+
+				//add two mesh layers
+				var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
+														 .attr("fill","transparent")
+														 .attr("stroke-width","3.5")
+														 .style("pointer-events","none")
+														 ;
+				var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
+									 .attr("fill","transparent")
+									 .attr("stroke-width","1.5")
+									 .attr("stroke-dasharray","4,2")
+									 .style("pointer-events","none")
+									 ;
+			}
+		}*/
 
 		//tract_layer.attr("stroke","orange").attr("stroke-width","3px");
 
@@ -2513,17 +2565,17 @@ function tract_maps(container){
 		map.draw();
 	}	
 
-	d3.json("./data/tract_data.json", function(error, data){
-		//map.data(data, "tract");
-		alldata = data;
 
-		metro_select().setup(select.node()).onchange(function(cbsa){
+
+	//set up and kick it off
+	metro_select().setup(select.node()).onchange(function(cbsa){
 			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
 		});
+	
+	get_and_map("10420");
 
-		get_and_map("10420");
-	});
+	//d3.json(dir.url())
 
 	//build filters
 	var filter_selections = {av:false, pov:false, ki:false, ba:false};
@@ -2604,6 +2656,8 @@ function subscription_bubble_map(container){
 						  .style("line-height","1em")
 						  ;
 
+	map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
+
 	var menu = menu_wrap.append("div").classed("c-fix buttons",true);
 
 	var defaul = "low";
@@ -2614,7 +2668,7 @@ function subscription_bubble_map(container){
 						.classed("selected", function(d){return d==defaul})
 						.style("visibility", "hidden");	
 
-	d3.json(dir.url("data", "metro_adoption.json"), function(error, data){
+	d3.json(dir.url("metdata", "metro_adoption.json"), function(error, data){
 		//map.data(data, "tract");
 		//alldata = data;
 
@@ -2631,9 +2685,26 @@ function subscription_bubble_map(container){
 		var projection = d3.geoAlbersUsa();
 		map.projection(projection);
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").attr("stroke","#999999");
 
-		metro_layer.aes.fill(defaul).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+		//fill color function
+		var filler = metro_layer.aes.fill(defaul).quantize(); //(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+		
+		//format legend
+		var pct = d3.format(",.1%");
+		var ranger = function(v){
+			return pct(v[0]) + "–" + pct(v[1]);
+		};
+		var ranker = function(v){
+			return Math.ceil(v[0]) + "–" + Math.floor(v[1]);
+		};
+
+		function draw_legend(title, format){
+			map.legend.swatch(filler.ticks(), format, title);
+		}
+
+		draw_legend("Share of pop. in low subscription neighborhoods", ranger);
+
 
 		map.draw();
 
@@ -2643,7 +2714,29 @@ function subscription_bubble_map(container){
 				return i==ii;
 			});
 
-			metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+			if(d=="rank"){
+				filler = metro_layer.aes.fill(d).quantize(['#a50f15','#ef3b2c','#999999','#6baed6','#084594']).flip();
+			}
+			else{
+				filler = metro_layer.aes.fill(d).quantize();
+			}
+
+			if(d=="low"){
+				var title = "Share of pop. in low subscription neighborhoods";
+			}
+			else if(d=="mod"){
+				var title = "Share of pop. in moderate subscription neighborhoods";
+			}
+			else if(d=="high"){
+				var title = "Share of pop. in high subscription neighborhoods";
+			}
+			else if(d=="rank"){
+				var title = "Composite ranking (1 = best performance)";
+			}
+
+			draw_legend(title, d=="rank" ? ranker : ranger);
+
+			//metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 			map.draw();
 		});
@@ -2680,10 +2773,9 @@ function access_bubble_map(container){
 	var buttons = menu_wrap.append("div").classed("buttons", true);
 	//var alldata;
 
-	d3.json("./data/metro_access.json", function(error, data){
+	d3.json(dir.url("metdata", "metro_access.json"), function(error, data){
 		//map.data(data, "tract");
 		//alldata = data;
-
 		if(error){
 			return null;
 		}
@@ -2731,6 +2823,7 @@ function access_bubble_map(container){
 			var svg = this.svg;
 			var proj = map.projection();
 
+			var redraw_legend = false;
 			if(dims.width < 560){
 				radius.radii(2,20);
 				if(!small_scale){draw_legend();}
@@ -2743,11 +2836,11 @@ function access_bubble_map(container){
 			}
 
 			x_scale.range([100, dims.width-40]);
-			y_scale.range([dims.height-70, 15]);
+			y_scale.range([dims.height-100, 15]);
 
 			//axes
 			svg.selectAll("g.axisGroup").remove();
-			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-60)+")");
+			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-90)+")");
 				x_axis_g.append("text").text("Share of pop. without access").attr("x",dims.width-40).attr("y","50").attr("text-anchor","end");
 			var y_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(90,0)");
 				y_axis_g.append("text").text("Population per square mile").attr("transform","rotate(-90)").attr("x","-10").attr("y","-68");
@@ -2831,41 +2924,40 @@ function access_bubble_map(container){
 			}
 
 			initial_draw = false;
-				
 		}
 
-		//initialize map
 		map.draw();
 
-		function draw_scatter(){
-			show_scatter = true;
-			map.zoomable(false);
-			map.zoom(0); //zoom out, recenter, -- this also calls draw
-		}
-
-		function draw_map(){
-			show_scatter = false;
-			map.zoomable();
+		//initialize map in next event loop to enable layout
+		setTimeout(function(){
 			map.draw();
-		}
-
-
-		var toggle = buttons.append("p").text("Show map");
-
-		toggle.on("mousedown", function(){
-			show_scatter = !show_scatter;
-			if(show_scatter){
-				draw_scatter();
-				toggle.text("Show map");
+			function draw_scatter(){
+				show_scatter = true;
+				map.zoomable(false);
+				map.zoom(0); //zoom out, recenter, -- this also calls draw
 			}
-			else{
-				draw_map();
-				toggle.text("Show plot");
+
+			function draw_map(){
+				show_scatter = false;
+				map.zoomable();
+				map.draw();
 			}
-		});
 
 
+			var toggle = buttons.append("p").text("Show map");
 
+			toggle.on("mousedown", function(){
+				show_scatter = !show_scatter;
+				if(show_scatter){
+					draw_scatter();
+					toggle.text("Show map");
+				}
+				else{
+					draw_map();
+					toggle.text("Show plot");
+				}
+			});
+		},0);
 	
 	});
 
@@ -3294,7 +3386,7 @@ function add_hand_icons$1(container){
 		var spans = d3.selectAll('span.hand-icon');
 	}
 
-	var url = dir.url("data", "hand_icon.png");
+	var url = dir.url("graphics", "hand_icon.png");
 
 	var images = spans.selectAll("img").data([url]);
 		images.exit().remove();
@@ -3312,12 +3404,19 @@ function main(){
 
   //local
   dir.local("./");
-  dir.add("data", "data");
+  dir.add("graphics", "assets/graphics");
+  dir.add("topo", "assets/tract_geo");
+  dir.add("data", "assets/cbsa_data");
+  dir.add("metdata", "assets/summary_data");
+  dir.add("citytopo", "assets/city_geo");
 
   //production data
   //dir.add("dirAlias", "rackspace-slug/path/to/dir");
-  //dir.add("dirAlias", "rackspace-slug/path/to/dir");
-
+  //dir.add("graphics", "assets/graphics");
+  //dir.add("topo", "assets/tract_geo");
+  //dir.add("data", "assets/cbsa_data");
+  //dir.add("metdata", "assets/summary_data");
+  //dir.add("citytopo", "assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||
@@ -3361,7 +3460,7 @@ function main(){
 
     //add in images
     var chicago = d3.select("#tract-map-example").style("position","relative").append("a").attr("href","#tract-map").classed("jump-link",true);
-    chicago.append("img").attr("src", dir.url("data", "Chicago.png"));
+    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"));
     chicago.append("div").style("position","relative")
                          .classed("makesans",true)
                          .style("padding","0em 0em 0em 0em")
@@ -3387,21 +3486,24 @@ function main(){
     //availability by speed tier
     var availability_graphic1 = d3.select("#availability-by-speed-tier").style("margin-bottom","2em");
     availability_graphic1.append("p").html("<b>Seven percent of Americans lack access to 25 Mbps broadband</b>").style("font-size","1.15em");
-    availability_graphic1.append("img").attr("src", dir.url("data","share_without_access.svg"));
+    availability_graphic1.append("img").attr("src", dir.url("graphics","share_without_access.svg"));
 
     var availability_graphic2 = d3.select("#rural-availability");
     availability_graphic2.append("p").html("<b>One in four rural residents does not have access to 25 Mbps broadband</b>").style("font-size","1.15em");
-    availability_graphic2.append("img").attr("src", dir.url("data","share_without_access_by_geo.svg"));
+    availability_graphic2.append("img").attr("src", dir.url("graphics","share_without_access_by_geo.svg"));
 
     var subscription_graphic = d3.select("#subscription-chart");
     subscription_graphic.append("p").html("<b>Less than one-fifth of Americans live in a high subscription neighborhood where at least 80 percent of residents have a broadband subscription</b>").style("font-size","1.15em").style("margin-bottom","20px");
-    subscription_graphic.append("img").attr("src", dir.url("data","subscription_levels.svg"));  
+    subscription_graphic.append("img").attr("src", dir.url("graphics","subscription_levels.svg"));  
 
     var pricing_graphic = d3.select("#pricing-by-country");
     pricing_graphic.append("p").html('<b>Average price of fixed broadband plans per Mbps of download speed, <span style="white-space:nowrap">2014 (US$)</span></b>').style("font-size","1.15em").style("margin-bottom","15px");
-    pricing_graphic.append("img").attr("src", dir.url("data","price_by_country.svg")); 
-  }
+    pricing_graphic.append("img").attr("src", dir.url("graphics","price_by_country.svg")); 
 
+    var correlation_graphic = d3.select("#correlations-chart");
+    correlation_graphic.append("p").html('<b>Chart under revision. Neighborhood broadband subscription rates are correlated with income and educational attainment<span style="white-space:nowrap"></span></b>').style("font-size","1.15em").style("margin-bottom","15px");
+    correlation_graphic.append("img").attr("src", dir.url("graphics","correlations.svg")); 
+  }
 
 } //close main()
 

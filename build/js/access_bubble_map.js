@@ -2,6 +2,7 @@
 
 //import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
+import dir from "../../../js-modules/rackspace.js";
 
 export default function access_bubble_map(container){
 
@@ -28,10 +29,9 @@ export default function access_bubble_map(container){
 	var buttons = menu_wrap.append("div").classed("buttons", true);
 	//var alldata;
 
-	d3.json("./data/metro_access.json", function(error, data){
+	d3.json(dir.url("metdata", "metro_access.json"), function(error, data){
 		//map.data(data, "tract");
 		//alldata = data;
-
 		if(error){
 			return null;
 		}
@@ -79,6 +79,7 @@ export default function access_bubble_map(container){
 			var svg = this.svg;
 			var proj = map.projection();
 
+			var redraw_legend = false
 			if(dims.width < 560){
 				radius.radii(2,20);
 				if(!small_scale){draw_legend()}
@@ -91,11 +92,11 @@ export default function access_bubble_map(container){
 			}
 
 			x_scale.range([100, dims.width-40]);
-			y_scale.range([dims.height-70, 15]);
+			y_scale.range([dims.height-100, 15]);
 
 			//axes
 			svg.selectAll("g.axisGroup").remove();
-			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-60)+")");
+			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-90)+")");
 				x_axis_g.append("text").text("Share of pop. without access").attr("x",dims.width-40).attr("y","50").attr("text-anchor","end");
 			var y_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(90,0)");
 				y_axis_g.append("text").text("Population per square mile").attr("transform","rotate(-90)").attr("x","-10").attr("y","-68");
@@ -179,41 +180,40 @@ export default function access_bubble_map(container){
 			}
 
 			initial_draw = false;
-				
 		}
 
-		//initialize map
 		map.draw();
 
-		function draw_scatter(){
-			show_scatter = true;
-			map.zoomable(false);
-			map.zoom(0); //zoom out, recenter, -- this also calls draw
-		}
-
-		function draw_map(){
-			show_scatter = false;
-			map.zoomable();
+		//initialize map in next event loop to enable layout
+		setTimeout(function(){
 			map.draw();
-		}
-
-
-		var toggle = buttons.append("p").text("Show map");
-
-		toggle.on("mousedown", function(){
-			show_scatter = !show_scatter;
-			if(show_scatter){
-				draw_scatter();
-				toggle.text("Show map");
+			function draw_scatter(){
+				show_scatter = true;
+				map.zoomable(false);
+				map.zoom(0); //zoom out, recenter, -- this also calls draw
 			}
-			else{
-				draw_map();
-				toggle.text("Show plot")
+
+			function draw_map(){
+				show_scatter = false;
+				map.zoomable();
+				map.draw();
 			}
-		})
 
 
+			var toggle = buttons.append("p").text("Show map");
 
+			toggle.on("mousedown", function(){
+				show_scatter = !show_scatter;
+				if(show_scatter){
+					draw_scatter();
+					toggle.text("Show map");
+				}
+				else{
+					draw_map();
+					toggle.text("Show plot")
+				}
+			})
+		},0)
 	
 	});
 

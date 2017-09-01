@@ -13,12 +13,32 @@ data$above1g <- substring(data$above1g,1,1)
 data$pov <- data$inpov/data$povuniv
 data$ba <- data$baplus_1115/data$edattain_univ_1115
 data$ki <- data$u18_1115/data$pop_1115
-
 data$access <- ifelse(data$atl25=="N", 0, data$pop_1115)
 
+DTA <- data[c("cbsa","tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","ki")]
+names(DTA) <- c("cbsa","tr","pl","av","su","pop","ba","pov","ki")
+
+export_cbsa <- function(cbsa){
+  code <- as.integer(cbsa);
+  dta <- DTA[DTA$cbsa==code & !is.na(DTA$cbsa), c("tr","pl","av","su","pop","ba","pov","ki")]
+  
+  writeLines(toJSON(dta, factor="string", na="null", digits=5), 
+             con=paste0("/home/alec/Projects/Brookings/broadband/assets/cbsa_data/",cbsa,".json"))
+  
+  cat("Number of record for CBSA ")
+  cat(code)
+  cat(": ")
+  cat(nrow(dta))
+  cat("\n")
+}
+
+t100 <- metropops()$CBSA_Code
+for(t in t100){
+  export_cbsa(t)
+}
+
 data100 <- limit100(data, "cbsa")
-data100 <- data100[c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","ki")]
-names(data100) <- c("tr","pl","av","su","pop","ba","pov","ki")
+
 
 #write out subset
 writeLines(toJSON(data100, factor="string", na="null", digits=5), 

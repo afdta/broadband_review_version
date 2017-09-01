@@ -56,8 +56,15 @@
   border-bottom: none;
 }
 
+#metro-interactive .no-select{
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;  
+}
+
 text{
   fill:#111111;
+  user-select:none;
 }
 
 div.h-border{
@@ -121,6 +128,7 @@ div.reading{
 div.reading.centered{
   margin-right:auto;
   margin-left:auto;
+  max-width:680px;
 }
 
 #metro-interactive p.text-section-title{

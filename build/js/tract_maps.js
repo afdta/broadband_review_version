@@ -2,6 +2,7 @@
 
 import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
+import dir from "../../../js-modules/rackspace.js";
 
 export default function tract_maps(container){
 
@@ -14,17 +15,25 @@ export default function tract_maps(container){
 					   .style("background-color","transparent")
 					   .append("div");
 
-	var geoCache = {};
-	var topoCache = {};
-	var borderCache = {};
+	var geoCache = {}; //tract geo
+	var dataCache = {}; //tract data 
+	var cityCache = {}; //primary city geo
+
+	//var topoCache = {};	//raw topo, used to create geoCache data
+	var borderCache = {}; //derived from topo (if geo available, so is border)
+
 	function get_and_map(cbsa){
-		if(geoCache.hasOwnProperty(cbsa)){
-			map_tract(geoCache[cbsa], topoCache[cbsa], borderCache[cbsa]);
+		if(geoCache.hasOwnProperty(cbsa) && dataCache.hasOwnProperty(cbsa) && cityCache.hasOwnProperty(cbsa)){
+			map_tract(dataCache[cbsa], geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
 		}
 		else{
-			var uri = "./data/tract_json/"+cbsa+".json";
+			//once these are loaded, you can map it
+			var data_loaded = false;
+			var topo_loaded = false;
+			var city_loaded = false;
 
-			d3.json(uri, function(error, topo){
+			//get topo
+			d3.json(dir.url("topo", cbsa+".json"), function(error, topo){
 				if (error) throw error;
 
 				var geoj = topojson.feature(topo, topo.objects.tracts);
@@ -48,14 +57,48 @@ export default function tract_maps(container){
 				}
 
 				geoCache[cbsa] = geoj; //cache it
-				topoCache[cbsa] = topo;
+				//topoCache[cbsa] = topo;
 				borderCache[cbsa] = border_fc;
 
-				map_tract(geoj, topo, border_fc);		
+				topo_loaded = true;
+
+				if(data_loaded && city_loaded){
+					map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc);
+				}		
+			});
+
+			//get data
+			d3.json(dir.url("data", cbsa+".json"), function(error, dat){
+				if (error) throw error;
+
+				dataCache[cbsa] = dat;
+
+				data_loaded = true;
+
+				if(topo_loaded && city_loaded){
+					map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
+				}
+
+			});
+
+			//load up city topo file
+			d3.json(dir.url("citytopo", cbsa+".json"), function(error, data){
+				if (error) throw error;
+				
+				var citygeo = topojson.feature(data, data.objects.geos);
+
+				cityCache[cbsa] = citygeo;
+
+				city_loaded = true;
+
+				if(topo_loaded && data_loaded){
+					map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa]);
+				}
 			});
 		}
 	}
 
+	//create map object and menu areas
 	var map = mapd(map_wrap.node());
 
 	var menu_wrap = map.menu().style("margin-bottom","1em");
@@ -75,91 +118,101 @@ export default function tract_maps(container){
 							  .style("color", "#555555")
 							  .style("padding", "0px 0px 6px 6px")
 							  .style("line-height","1em")
+							  .classed("no-select",true)
 							  ;
-
 	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
 
-	var alldata;
 
-	function map_tract(geoj, topo, border){
+	//do the mapping after all data has been loaded
+	function map_tract(tract_data, geoj, citygeo, border){
 		map.clear();
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
 
 		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
-		
-		if(!!alldata){
+		tract_layer.data(tract_data, "tr");
 
-			tract_layer.data(alldata, "tr");
-
-			var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
-			tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
+		var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
+		tract_layer.aes.fillcat("su").levels(["0","1","2","3","4","5"], cols);
 
 
-			build_filters(tract_layer);
+		build_filters(tract_layer);
 
-			//temp
-			//	geoj.features.forEach(function(d){
-			//		var id = d.properties.geo_id;
-			//		d.properties.place_fips = tract_layer.lookup(id).pl;
-			//	});
 
-			//add mesh layer
-			try{
-				var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
-						var a_place = tract_layer.lookup(a.properties.geo_id).pl;
-						var b_place = tract_layer.lookup(b.properties.geo_id).pl;
-
-						var keep = false;
-
-						if((!!a_place || !!b_place) && (a_place !== b_place)){
-							var keep = true; 
-						}
-						else if(!!a_place && a===b){
-							var keep = true;
-						}
-
-						return keep;
-
-					});
-
-			}
-			catch(e){
-				var mesh = null;
-			}
-			finally{
-				if(mesh != null){
-					var mesh_fc = {
-						"type": "FeatureCollection",
-						"bbox": geoj.bbox,
-						"features": [
-							{
-								"type": "Feature",
-								"geometry": mesh,
-								"properties": {
-									"geo_id":"primary_cities"
-								}
-							}	
-						]
-					}
-
-					//add two mesh layers
-					var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
-															 .attr("fill","transparent")
-															 .attr("stroke-width","3.5")
-															 .style("pointer-events","none")
-															 ;
-					var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
-										 .attr("fill","transparent")
-										 .attr("stroke-width","1.5")
-										 .attr("stroke-dasharray","4,2")
-										 .style("pointer-events","none")
-										 ;
-				}
-			}
+		//add city boundaries
+		try{
+			//add two mesh layers
+			var mesh_layer0 = map.layer().geo(citygeo).attr("stroke","#FFD101")
+													 .attr("fill","none")
+													 .attr("stroke-width","3.5")
+													 .style("pointer-events","none")
+													 ;
+			var mesh_layer1 = map.layer().geo(citygeo).attr("stroke","#695600")
+								 .attr("fill","none")
+								 .attr("stroke-width","1.5")
+								 .attr("stroke-dasharray","4,2")
+								 .style("pointer-events","none")
+								 ;
 
 		}
+		catch(e){
+			//no-op
+		}
+
+		//add mesh layer
+		/*try{
+			var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+					var a_place = tract_layer.lookup(a.properties.geo_id).pl;
+					var b_place = tract_layer.lookup(b.properties.geo_id).pl;
+
+					var keep = false;
+
+					if((!!a_place || !!b_place) && (a_place !== b_place)){
+						var keep = true; 
+					}
+					else if(!!a_place && a===b){
+						var keep = true;
+					}
+
+					return keep;
+
+				});
+
+		}
+		catch(e){
+			var mesh = null;
+		}
+		finally{
+			if(mesh != null){
+				var mesh_fc = {
+					"type": "FeatureCollection",
+					"bbox": geoj.bbox,
+					"features": [
+						{
+							"type": "Feature",
+							"geometry": mesh,
+							"properties": {
+								"geo_id":"primary_cities"
+							}
+						}	
+					]
+				}
+
+				//add two mesh layers
+				var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
+														 .attr("fill","transparent")
+														 .attr("stroke-width","3.5")
+														 .style("pointer-events","none")
+														 ;
+				var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
+									 .attr("fill","transparent")
+									 .attr("stroke-width","1.5")
+									 .attr("stroke-dasharray","4,2")
+									 .style("pointer-events","none")
+									 ;
+			}
+		}*/
 
 		//tract_layer.attr("stroke","orange").attr("stroke-width","3px");
 
@@ -181,17 +234,17 @@ export default function tract_maps(container){
 		map.draw();
 	};	
 
-	d3.json("./data/tract_data.json", function(error, data){
-		//map.data(data, "tract");
-		alldata = data;
 
-		metro_select().setup(select.node()).onchange(function(cbsa){
+
+	//set up and kick it off
+	metro_select().setup(select.node()).onchange(function(cbsa){
 			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
 		});
+	
+	get_and_map("10420");
 
-		get_and_map("10420");
-	})
+	//d3.json(dir.url())
 
 	//build filters
 	var filter_selections = {av:false, pov:false, ki:false, ba:false};

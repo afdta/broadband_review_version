@@ -11,12 +11,19 @@ function main(){
 
   //local
   dir.local("./");
-  dir.add("data", "data");
+  dir.add("graphics", "assets/graphics");
+  dir.add("topo", "assets/tract_geo");
+  dir.add("data", "assets/cbsa_data");
+  dir.add("metdata", "assets/summary_data");
+  dir.add("citytopo", "assets/city_geo");
 
   //production data
   //dir.add("dirAlias", "rackspace-slug/path/to/dir");
-  //dir.add("dirAlias", "rackspace-slug/path/to/dir");
-
+  //dir.add("graphics", "assets/graphics");
+  //dir.add("topo", "assets/tract_geo");
+  //dir.add("data", "assets/cbsa_data");
+  //dir.add("metdata", "assets/summary_data");
+  //dir.add("citytopo", "assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||
@@ -60,7 +67,7 @@ function main(){
 
     //add in images
     var chicago = d3.select("#tract-map-example").style("position","relative").append("a").attr("href","#tract-map").classed("jump-link",true);
-    chicago.append("img").attr("src", dir.url("data", "Chicago.png"));
+    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"));
     chicago.append("div").style("position","relative")
                          .classed("makesans",true)
                          .style("padding","0em 0em 0em 0em")
@@ -86,21 +93,24 @@ function main(){
     //availability by speed tier
     var availability_graphic1 = d3.select("#availability-by-speed-tier").style("margin-bottom","2em")
     availability_graphic1.append("p").html("<b>Seven percent of Americans lack access to 25 Mbps broadband</b>").style("font-size","1.15em");
-    availability_graphic1.append("img").attr("src", dir.url("data","share_without_access.svg"));
+    availability_graphic1.append("img").attr("src", dir.url("graphics","share_without_access.svg"));
 
     var availability_graphic2 = d3.select("#rural-availability")
     availability_graphic2.append("p").html("<b>One in four rural residents does not have access to 25 Mbps broadband</b>").style("font-size","1.15em");
-    availability_graphic2.append("img").attr("src", dir.url("data","share_without_access_by_geo.svg"));
+    availability_graphic2.append("img").attr("src", dir.url("graphics","share_without_access_by_geo.svg"));
 
     var subscription_graphic = d3.select("#subscription-chart")
     subscription_graphic.append("p").html("<b>Less than one-fifth of Americans live in a high subscription neighborhood where at least 80 percent of residents have a broadband subscription</b>").style("font-size","1.15em").style("margin-bottom","20px");
-    subscription_graphic.append("img").attr("src", dir.url("data","subscription_levels.svg"));  
+    subscription_graphic.append("img").attr("src", dir.url("graphics","subscription_levels.svg"));  
 
     var pricing_graphic = d3.select("#pricing-by-country");
     pricing_graphic.append("p").html('<b>Average price of fixed broadband plans per Mbps of download speed, <span style="white-space:nowrap">2014 (US$)</span></b>').style("font-size","1.15em").style("margin-bottom","15px");
-    pricing_graphic.append("img").attr("src", dir.url("data","price_by_country.svg")); 
-  }
+    pricing_graphic.append("img").attr("src", dir.url("graphics","price_by_country.svg")); 
 
+    var correlation_graphic = d3.select("#correlations-chart");
+    correlation_graphic.append("p").html('<b>Chart under revision. Neighborhood broadband subscription rates are correlated with income and educational attainment<span style="white-space:nowrap"></span></b>').style("font-size","1.15em").style("margin-bottom","15px");
+    correlation_graphic.append("img").attr("src", dir.url("graphics","correlations.svg")); 
+  }
 
 } //close main()
 
