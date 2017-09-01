@@ -2533,6 +2533,9 @@ function tract_maps(container){
 					})
 				   .classed("selected",false);
 
+			//reset
+			filter_selections = {av:false, pov:false, ki:false, ba:false};
+
 
 		filters.on("mousedown",function(d){
 
