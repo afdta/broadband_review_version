@@ -7,7 +7,7 @@ import dir from "../../../js-modules/rackspace.js";
 export default function access_bubble_map(container){
 
 	var wrap = d3.select(container);
-	//var select = wrap.append("div");
+
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
                        .style("min-width", "450px")
@@ -27,11 +27,9 @@ export default function access_bubble_map(container){
 									.style("max-width","1600px")
 									;
 	var buttons = menu_wrap.append("div").classed("buttons", true);
-	//var alldata;
 
 	d3.json(dir.url("metdata", "metro_access.json"), function(error, data){
-		//map.data(data, "tract");
-		//alldata = data;
+
 		if(error){
 			return null;
 		}

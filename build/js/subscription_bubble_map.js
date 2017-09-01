@@ -51,8 +51,6 @@ export default function subscription_bubble_map(container){
 						;	
 
 	d3.json(dir.url("metdata", "metro_adoption.json"), function(error, data){
-		//map.data(data, "tract");
-		//alldata = data;
 
 		if(error){
 			return null;
@@ -117,8 +115,6 @@ export default function subscription_bubble_map(container){
 			}
 
 			draw_legend(title, d=="rank" ? ranker : ranger);
-
-			//metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 			map.draw();
 		});

@@ -2475,7 +2475,7 @@ function tract_maps(container){
 
 		//add city boundaries
 		try{
-			//add two mesh layers
+			//add two primary city layers
 			var mesh_layer0 = map.layer().geo(citygeo).attr("stroke","#FFD101")
 													 .attr("fill","none")
 													 .attr("stroke-width","3.5")
@@ -2490,62 +2490,6 @@ function tract_maps(container){
 		catch(e){
 			//no-op
 		}
-
-		//add mesh layer
-		/*try{
-			var mesh = topojson.mesh(topo, topo.objects.tracts, function(a,b){
-					var a_place = tract_layer.lookup(a.properties.geo_id).pl;
-					var b_place = tract_layer.lookup(b.properties.geo_id).pl;
-
-					var keep = false;
-
-					if((!!a_place || !!b_place) && (a_place !== b_place)){
-						var keep = true; 
-					}
-					else if(!!a_place && a===b){
-						var keep = true;
-					}
-
-					return keep;
-
-				});
-
-		}
-		catch(e){
-			var mesh = null;
-		}
-		finally{
-			if(mesh != null){
-				var mesh_fc = {
-					"type": "FeatureCollection",
-					"bbox": geoj.bbox,
-					"features": [
-						{
-							"type": "Feature",
-							"geometry": mesh,
-							"properties": {
-								"geo_id":"primary_cities"
-							}
-						}	
-					]
-				}
-
-				//add two mesh layers
-				var mesh_layer0 = map.layer().geo(mesh_fc).attr("stroke","#FFD101")
-														 .attr("fill","transparent")
-														 .attr("stroke-width","3.5")
-														 .style("pointer-events","none")
-														 ;
-				var mesh_layer1 = map.layer().geo(mesh_fc).attr("stroke","#695600")
-									 .attr("fill","transparent")
-									 .attr("stroke-width","1.5")
-									 .attr("stroke-dasharray","4,2")
-									 .style("pointer-events","none")
-									 ;
-			}
-		}*/
-
-		//tract_layer.attr("stroke","orange").attr("stroke-width","3px");
 
 		var projection = tract_layer.get_albers();
 
@@ -2569,13 +2513,11 @@ function tract_maps(container){
 
 	//set up and kick it off
 	metro_select().setup(select.node()).onchange(function(cbsa){
-			//console.log(this);
 			get_and_map(cbsa.CBSA_Code);
 		});
 	
 	get_and_map("10420");
 
-	//d3.json(dir.url())
 
 	//build filters
 	var filter_selections = {av:false, pov:false, ki:false, ba:false};
@@ -2588,11 +2530,9 @@ function tract_maps(container){
 				   .text(function(d){
 						var text = {av:"No availability at 25 Mbps", pov:"A 20%+ poverty rate", ki:"Above U.S. average share of children", ba:"Above U.S. average BA attainment"};
 						return text[d];
-					});
+					})
+				   .classed("selected",false);
 
-			//.style("margin","5px 10px 5px 0px").style("padding","0px 10px").style("cursor","pointer")
-			//		.style("border","1px solid #aaaaaa")
-			//		.style("border-radius","5px");
 
 		filters.on("mousedown",function(d){
 
@@ -2669,8 +2609,6 @@ function subscription_bubble_map(container){
 						.style("visibility", "hidden");	
 
 	d3.json(dir.url("metdata", "metro_adoption.json"), function(error, data){
-		//map.data(data, "tract");
-		//alldata = data;
 
 		if(error){
 			return null;
@@ -2736,8 +2674,6 @@ function subscription_bubble_map(container){
 
 			draw_legend(title, d=="rank" ? ranker : ranger);
 
-			//metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
-
 			map.draw();
 		});
 
@@ -2753,7 +2689,7 @@ function subscription_bubble_map(container){
 function access_bubble_map(container){
 
 	var wrap = d3.select(container);
-	//var select = wrap.append("div");
+
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
                        .style("min-width", "450px")
@@ -2771,11 +2707,9 @@ function access_bubble_map(container){
 									.style("border-bottom", "1px dotted #999999")
 									.style("max-width","1600px");
 	var buttons = menu_wrap.append("div").classed("buttons", true);
-	//var alldata;
 
 	d3.json(dir.url("metdata", "metro_access.json"), function(error, data){
-		//map.data(data, "tract");
-		//alldata = data;
+
 		if(error){
 			return null;
 		}
