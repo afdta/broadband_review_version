@@ -253,6 +253,7 @@ function metro_select(){
 //need to document these for aesthetics for the user
 
 //to do; handling missing values ok?
+//to do: look into the ticks methods for legends -- useful or should the api be pruned?
 
 //color palettes
 //credit: these palettes includes color specifications and designs developed by Cynthia Brewer (http://colorbrewer.org/).
@@ -413,6 +414,10 @@ function aesthetics(data){
 		//aesthetic mapping function
 		aes.map = null;
 
+		//record break values for quantize/quantile scales
+		var breaks = null;
+		var ticks = null;
+
 		//rebuild the scale
 		var set_scale = function(){
 			
@@ -446,14 +451,36 @@ function aesthetics(data){
 			//set the mapping function (from value to color)
 			if(scale_type == "quantize"){
 				var aes_map = d3.scaleQuantize().domain(domain).range(pal);
+				breaks = pal.map(function(d){
+					return aes_map.invertExtent(d);
+				});
+				ticks = pal.map(function(d,i){
+					return {value:breaks[i], color:d}
+				});
 			}
 			else if(scale_type == "quantile"){
 				var aes_map = d3.scaleQuantile().domain(domain).range(pal);
+				var brk = aes_map.quantiles();
+				breaks = brk.map(function(d,i){
+					if(i==0){
+						return [min, d];
+					}
+					else{
+						return [brk[i-1], d];
+					}
+				});
+				//add top end to breaks
+				breaks.push([brk[brk.length-1], max]);
+				ticks = pal.map(function(d,i){
+					return {value:breaks[i], color:d}
+				});
 			}
 			else if(scale_type == "linear" && pal_type == "sequential"){
 				var interpolator = d3.interpolateLab(lpal.low, lpal.high);
 				var linear_scale = d3.scaleLinear().domain(domain).range([0,1]);
 				var aes_map = function(v){return interpolator(linear_scale(v))};
+				breaks = null;
+				ticks = null;
 			}
 			else if(scale_type == "linear" && pal_type == "diverging"){
 				var interpolator_high = d3.interpolateLab(lpal.mid, lpal.high);
@@ -463,9 +490,13 @@ function aesthetics(data){
 				var aes_map = function(v){
 					return v >= midpoint ? interpolator_high(linear_scale_high(v)) : interpolator_low(linear_scale_low(v));
 				};
+				breaks = null;
+				ticks = null;
 			}
 			else{
 				var aes_map = function(v){return "#dddddd"};
+				breaks = null;
+				ticks = null;
 			}
 
 			//decorate with missing values handler -- record could also be missing or undefined
@@ -546,6 +577,15 @@ function aesthetics(data){
 			return aes;
 		};
 
+		//return breaks
+		aes.breaks = function(){
+			return breaks;
+		};
+
+		aes.ticks = function(){
+			return ticks;
+		};
+
 		//build the default scale
 		set_scale();
 
@@ -593,6 +633,16 @@ function aesthetics(data){
 			set_scale();
 
 			return aes;
+		};
+
+		aes.ticks = function(){
+			return d3.range(0,9,4).map(function(i){
+				//this format is acceptable by aes.map
+				var v = {};
+				v.value = distribution.deciles[i];
+				v.r = scale(v.value);
+				return v;
+			});
 		};
 
 		set_scale(); //initialize
@@ -1532,6 +1582,175 @@ function geo_api_sync(){
 	return api
 }
 
+//to do: figure out how to reserve the proper amount of space prior to draw so that auto layout doesn't have any issues -- if
+//to do: major work on making layout more robust, responsive, etc
+//legend is added after set_dim() called, then it won't be accurate. SO, could reserve some space, or run draw in callback
+
+function legend(container){
+	//landscape is default
+	var landscape = true;
+
+	var L = {};
+
+	var values = [];
+	var labels = [];
+
+	var outer_wrap = L.wrap = d3.select(container);
+
+	var inner_wrap = outer_wrap.append("div").classed("c-fix",true);
+
+	var default_radius = 8;
+	var default_fill = "none";
+
+	var bubble_values = null;
+	var swatch_values = null;
+
+	//build new legends from scratch v2r, v2c = value to radius/color (mapping functions)
+	L.bubble = function(values, formatter, title){
+		bubble_values = values;
+
+		var padding = 8;
+
+		var format = typeof formatter == "function" ? formatter : function(v){return v};
+
+		inner_wrap.selectAll("div.bubble-legend").remove();
+		var wrap = inner_wrap.append("div").classed("bubble-legend", true).style("float","right").style("margin","0em 1em 0em 2em");
+		var svg = wrap.append("svg");
+		var g = svg.append("g").attr("transform","translate(0,25)");
+
+		var maxr = d3.max(values, function(d){return d.r});
+
+		svg.attr("height", 2*maxr + 2*padding + 25);
+
+		if(landscape){
+			
+			var bubbles = g.selectAll("circle").data(values).enter().append("circle")
+								.attr("r", function(d){
+									return d.r;
+								})
+								.attr("fill","none")
+								.attr("stroke", "#333333")
+								.attr("cx", function(d,i){
+									return maxr + padding;
+								})
+								.attr("cy", function(d,i){
+									return 2*maxr - d.r + padding;
+								});
+
+			var ledes = g.selectAll("line").data(values).enter().append("path")
+							.attr("d", function(d,i){
+								return "M"+(maxr+padding)+","+((2*maxr)-(2*d.r)+padding)+" l"+(maxr+(2*padding))+",0";
+							})
+							.attr("stroke","#333333")
+							.attr("stroke-dasharray", "2,2");
+
+			var text = g.selectAll("text").data(values).enter().append("text")
+							.attr("x", (2*maxr+(3*padding))+1)
+							.attr("y", function(d,i){
+								return ((2*maxr)-(2*d.r)+padding)+(i==0 ? 8 : (i==1 ? 4 : 1));
+							})
+							.text(function(d,i){
+								return format(d.value);
+							})
+							.style("font-size","13px");
+
+
+			var text = svg.append("text").text(title).attr("x", "50%").attr("text-anchor","middle").attr("y",12);
+
+			setTimeout(function(){
+				var box = g.node().getBoundingClientRect();
+				var box1 = text.node().getBoundingClientRect();
+				var w = box.right - box.left;
+				var w1 = box1.right - box1.left;
+				svg.attr("width", Math.max(w1,w));
+			},0);
+
+		}
+
+		return L;
+	};
+
+	L.swatch = function(values, formatter, title, left){
+		swatch_values = values;
+
+		var padding = 12;
+
+		var format = typeof formatter == "function" ? formatter : function(v){return v};
+
+		inner_wrap.selectAll("div.swatch-legend").remove();
+		var wrap = inner_wrap.append("div").classed("c-fix swatch-legend", true).style("float", arguments.length > 3 && !!left ? "left" : "right").style("margin","0em 1em 0em 2em");
+		var svg = wrap.append("svg");
+		var g = svg.append("g").attr("transform","translate(0,25)");
+
+		var s_height = 15;
+		var s_width = 35;
+
+		svg.attr("height", 2*s_height + 2*padding + 25);
+
+		if(landscape){
+
+			var text = g.selectAll("text").data(values).enter().append("text")
+							.attr("x", function(d,i){return s_width*i + padding})
+							.attr("y", 11)
+							.text(function(d,i){
+								return format(d.value);
+							})
+							.style("font-size","13px");	
+
+			setTimeout(function(){
+				var max = s_width;
+				text.each(function(){
+					var box = this.getBoundingClientRect();
+					var w = box.right - box.left;
+					if(w > max){
+						max = w;
+					}
+				});
+				text.attr("x", function(d,i){
+					return (max+padding)*i; 
+				});
+				
+				var swatches = g.selectAll("rect").data(values).enter().append("rect")
+								.attr("width", max)
+								.attr("height", s_height)
+								.attr("fill",function(d){return d.color})
+								.attr("stroke", "none")
+								.attr("x", function(d,i){
+									return (max + padding)*i;
+								})
+								.attr("y", 13);
+
+				var title_text = svg.append("text").text(title).attr("x", "0%").attr("text-anchor","start").attr("y",12);
+				setTimeout(function(){
+					var box = g.node().getBoundingClientRect();
+					var box1 = text.node().getBoundingClientRect();
+					var w = box.right - box.left;
+					var w1 = box1.right - box1.left;
+					svg.attr("width", Math.max(w1,w));
+				},0);
+
+			},0);		
+
+		}
+		return L;
+	};
+
+	L.gradient = function(){
+
+	};
+
+	//set legend as portrait and redraw if already drawn
+	L.portrait = function(){
+		landscape = false;
+		if(bubble_values != null){
+			L.bubble(bubble_values, bubble_v2r, bubble_v2c);
+		}
+		return L;
+	};
+
+	return L;
+}
+
 //dependencies: d3 v4.0+, topojson v3.0+
 
 //tests: categorical scale: https://jsfiddle.net/b1x28zf9/5/
@@ -1574,7 +1793,10 @@ function mapd(root_container){
 
 	//hold menu elements
 	//to do: make menu building capabilities more robust
-	var menu_wrap = dom_root.append("div").classed("c-fix",true);
+	var title_wrap = dom_root.append("div").classed("c-fix",true);
+	var top_wrap = dom_root.append("div").classed("c-fix",true);
+		var menu_wrap = top_wrap.append("div").classed("c-fix",true);
+		var legend_wrap = top_wrap.append("div").classed("c-fix",true);
 
 	//container is given a width of 100%, a non-zero min-height, and 0 padding to aid in accurate resizing
 	//you should never set the dimensions of this element
@@ -1610,7 +1832,7 @@ function mapd(root_container){
 								 .style("left","-100px")
 								 .style("visibility","hidden");
 
-	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","15px").style("left","80%")
+	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","3rem").style("left","80%")
 												.style("width","70px").style("height","50px")
 												.style("z-index","10")
 												.style("cursor","pointer")
@@ -1672,6 +1894,12 @@ function mapd(root_container){
 	map.menu = function(){
 		return menu_wrap;
 	};
+
+	map.title = function(){
+		return title_wrap;
+	};
+
+	map.legend = legend(legend_wrap.node());
 
 	//set map countainer (outer_wrap) height -- does not touch container
 	var set_height = function(h, units){
@@ -2168,9 +2396,10 @@ function tract_maps(container){
 	var menu_wrap = map.menu().style("margin-bottom","1em");
 	
 
-	var menu_inner = menu_wrap.append("div").style("max-width","800px")
-							  .style("margin","0px auto 2em auto")
-							  .style("padding","0em 0px");
+	var menu_inner = menu_wrap.append("div").style("max-width","1200px")
+							  .style("border-bottom", "1px dotted #999999")
+							  .style("margin","0px auto 0em auto")
+							  .style("padding","0em 2em 1em 2em");
 
 	var select = menu_inner.append("div");
 
@@ -2270,6 +2499,17 @@ function tract_maps(container){
 
 		map.projection(projection);
 
+		map.legend.swatch([{color:'#a50f15', value:"0-20%"},
+						   {color:'#ef3b2c', value:"20-40%"},
+						   {color:'#9ecae1', value:"40-60%"},
+						   {color:'#6baed6', value:"60-80%"},
+						   {color:'#084594', value:"80-100%"}], 
+						   function(v){return v},
+						   "Neighborhood broadband subscription rates",
+						   "left"
+						   );
+		map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
+
 		map.draw();
 	}	
 
@@ -2294,7 +2534,7 @@ function tract_maps(container){
 		var filters = filters_enter.merge(filters_update);
 			filters.style("float","left")
 				   .text(function(d){
-						var text = {av:"No availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
+						var text = {av:"No availability at 25 Mbps", pov:"A 20%+ poverty rate", ki:"Above U.S. average share of children", ba:"Above U.S. average BA attainment"};
 						return text[d];
 					});
 
@@ -2306,11 +2546,11 @@ function tract_maps(container){
 
 			d3.select(this).classed("selected", filter_selections[d] = !filter_selections[d]);
 
-			//passing these tests means showing the geo (e.g. no availability, high poverty)
+			//passing these tests means showing the geo (e.g. no availability, high poverty, high edu)
 			var av_test = function(d){return !filter_selections.av || (filter_selections.av && d.av == "N")};
 			var pov_test = function(d){return !filter_selections.pov || (filter_selections.pov && d.pov >= 0.2)};
-			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.3)};
-			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba < 0.28)};
+			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.2328)};
+			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba > 0.2977)};
 
 			var composite_filter = function(d){
 				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
@@ -2336,16 +2576,45 @@ function tract_maps(container){
 function subscription_bubble_map(container){
 
 	var wrap = d3.select(container);
-	//var select = wrap.append("div");
+	
+	var lede = wrap.append("div").style("max-width","1200px").style("margin","0px auto").style("padding","0em 2em");
+		lede.append("p").html('Map the share of each metro area\'s population living in low, moderate, or high subscription neighborhoods. Or select "composite ranking" to view rankings based on combined performance on broadband availability and adoption. (See the full report for more details on how these rankings were calulated.)')
+			.style("max-width","800px")
+			;
+
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
                        .style("max-width","1600px")
                        .style("margin","0px auto");
 
 	var map = mapd(map_wrap.node());
-	//var alldata;
 
-	d3.json("./data/metro_adoption.json", function(error, data){
+	var menu_wrap = map.menu().style("text-align","left").append("div")
+											.style("max-width","1200px")
+											.style("padding","0em 2em 1em 2em")
+											.classed("c-fix",true)
+											.style("margin","0em auto 2em auto")
+											.style("border-bottom", "1px dotted #999999");
+
+		menu_wrap.append("p").text("SELECT ONE TO MAP")
+						  .style("margin","0em 0em 0em 0em")
+						  .style("font-size","0.85em")
+						  .style("color", "#555555")
+						  .style("padding", "0px 0px 6px 6px")
+						  .style("line-height","1em")
+						  ;
+
+	var menu = menu_wrap.append("div").classed("c-fix buttons",true);
+
+	var defaul = "low";
+	var titles = {low:"Low subscription (0-40%)", mod:"Moderate subscription (40-80%)", high:"High subscription (80-100%)", rank:"Composite ranking"};
+	var buttons = menu.selectAll("p").data(["low","mod","high","rank"]).enter().append("p")
+						.style("float","left")
+						.text(function(d){return titles[d]})
+						.classed("selected", function(d){return d==defaul})
+						.style("visibility", "hidden");	
+
+	d3.json(dir.url("data", "metro_adoption.json"), function(error, data){
 		//map.data(data, "tract");
 		//alldata = data;
 
@@ -2364,9 +2633,22 @@ function subscription_bubble_map(container){
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
 
-		metro_layer.aes.fill("pcat_10x1_5").quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+		metro_layer.aes.fill(defaul).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
 
 		map.draw();
+
+		
+		buttons.style("visibility","visible").on("mousedown", function(d,i){
+			buttons.classed("selected",function(dd,ii){
+				return i==ii;
+			});
+
+			metro_layer.aes.fill(d).quantile(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
+
+			map.draw();
+		});
+
+
 
 	});
 
@@ -2381,13 +2663,21 @@ function access_bubble_map(container){
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
+                       .style("min-width", "450px")
                        .style("max-width","1600px")
                        .style("margin","0px auto");
 
 	var map = mapd(map_wrap.node());
 
-	var menu_wrap = map.menu();
-	var buttons = menu_wrap.append("div").classed("buttons", true).style("float","right");
+	var menu_wrap = map.menu().style("float","right").style("margin-left","2em");
+	
+	var title = map.title().append("p").style("font-weight","bold")
+									.style("font-size","1.15em")
+									.style("text-align","center")
+									.style("margin","0em auto 1em auto")
+									.style("border-bottom", "1px dotted #999999")
+									.style("max-width","1600px");
+	var buttons = menu_wrap.append("div").classed("buttons", true);
 	//var alldata;
 
 	d3.json("./data/metro_access.json", function(error, data){
@@ -2407,9 +2697,21 @@ function access_bubble_map(container){
 		map.projection(d3.geoAlbersUsa()).zoomable(false); //set albers composite projection as map proj
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
-		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']).flip();
+		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
+
 		var radius = metro_layer.aes.r("numwo");
-			radius.radii(4, 40);
+			radius.radii(4, 40);	
+
+		function draw_legend(){
+			map.legend.bubble(radius.ticks(), d3.format("-,.0f"), "Total pop. without access");
+			map.legend.swatch(filler.ticks(), function(v){
+				var pct = d3.format(",.1%");
+				var num1 = d3.format(",.1f");
+				return num1(v[0]*100) + "–" + pct(v[1]);
+			}, "Share of pop. without access");
+		}
+
+		draw_legend();
 
 		//handle redrawing axes in free layer
 		var show_scatter = true; //what to do
@@ -2417,26 +2719,44 @@ function access_bubble_map(container){
 		var initial_draw = true; //one-time use
 
 		var x_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.shwo}));
-		var y_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.density}));
+		var y_scale = d3.scaleLinear().domain([0, d3.max(data, function(d){return d.density}) ] );
 		
 
 		//scatter plot layers
 		var free_layer = map.layer_free(draw_free).hide(); //hold axes
+		var small_scale = false;
 
 		function draw_free(){
 			var dims = this.dimensions;
 			var svg = this.svg;
 			var proj = map.projection();
 
-			if(dims.width < 480){
+			if(dims.width < 560){
 				radius.radii(2,20);
+				if(!small_scale){draw_legend();}
+				small_scale = true;
 			}
 			else{
 				radius.radii(4,40);
+				if(small_scale){draw_legend();}
+				small_scale = false;
 			}
 
-			x_scale.range([50, dims.width-50]);
-			y_scale.range([dims.height-50, 50]);
+			x_scale.range([100, dims.width-40]);
+			y_scale.range([dims.height-70, 15]);
+
+			//axes
+			svg.selectAll("g.axisGroup").remove();
+			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-60)+")");
+				x_axis_g.append("text").text("Share of pop. without access").attr("x",dims.width-40).attr("y","50").attr("text-anchor","end");
+			var y_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(90,0)");
+				y_axis_g.append("text").text("Population per square mile").attr("transform","rotate(-90)").attr("x","-10").attr("y","-68");
+
+			var x_axis = d3.axisBottom(x_scale).tickFormat(d3.format(",.0%")).ticks(6);
+			x_axis(x_axis_g);
+
+			var y_axis = d3.axisLeft(y_scale).ticks(6);
+			y_axis(y_axis_g);
 
 			var u = svg.selectAll("circle").data(metros, function(d){return d.geo_id});
 			u.exit().remove();
@@ -2472,7 +2792,7 @@ function access_bubble_map(container){
 						return y_scale(metro_layer.lookup(d.geo_id).density);
 					});					
 				}
-
+				title.html("Population density versus the share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = true;
 			}
 			else{
@@ -2506,11 +2826,12 @@ function access_bubble_map(container){
 						free_layer.hide();
 						metro_layer.show();
 				}
-
+				title.html("Share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = false;
 			}
 
-			initial_draw = false;			
+			initial_draw = false;
+				
 		}
 
 		//initialize map
@@ -2742,9 +3063,9 @@ function interventions(){
 				  .style("border-top","1px solid #aaaaaa")
 				  .style("margin","0px 0px 0px 0.75rem");
 			var footnote_wrap = box.append("div").style("margin","1rem");
-			var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[id])}).enter().append("p")
+			var footnote_text = footnote_wrap.selectAll("p").data(function(d){return footnotes[id] }).enter().append("p")
 											.html(function(d,i){
-												var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+												var super_note = "<sup>" + (i+1) + "</sup> ";
 												return super_note + d;
 											});
 		}
@@ -2801,9 +3122,9 @@ function interventions(){
 								  ;
 
 				var footnote_wrap = thiz.append("div");
-				var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[d.id])}).enter().append("p")
+				var footnote_text = footnote_wrap.selectAll("p").data(function(d){return footnotes[d.id] }).enter().append("p")
 												.html(function(d,i){
-													var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+													var super_note = "<sup>" + (i+1) + "</sup> ";
 													return super_note + d;
 												});
 			}

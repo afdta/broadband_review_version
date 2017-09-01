@@ -61,9 +61,10 @@ export default function tract_maps(container){
 	var menu_wrap = map.menu().style("margin-bottom","1em");
 	
 
-	var menu_inner = menu_wrap.append("div").style("max-width","800px")
-							  .style("margin","0px auto 2em auto")
-							  .style("padding","0em 0px")
+	var menu_inner = menu_wrap.append("div").style("max-width","1200px")
+							  .style("border-bottom", "1px dotted #999999")
+							  .style("margin","0px auto 0em auto")
+							  .style("padding","0em 2em 1em 2em")
 							  ;
 
 	var select = menu_inner.append("div");
@@ -166,6 +167,17 @@ export default function tract_maps(container){
 
 		map.projection(projection);
 
+		map.legend.swatch([{color:'#a50f15', value:"0-20%"},
+						   {color:'#ef3b2c', value:"20-40%"},
+						   {color:'#9ecae1', value:"40-60%"},
+						   {color:'#6baed6', value:"60-80%"},
+						   {color:'#084594', value:"80-100%"}], 
+						   function(v){return v},
+						   "Neighborhood broadband subscription rates",
+						   "left"
+						   )
+		map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
+
 		map.draw();
 	};	
 
@@ -190,7 +202,7 @@ export default function tract_maps(container){
 		var filters = filters_enter.merge(filters_update);
 			filters.style("float","left")
 				   .text(function(d){
-						var text = {av:"No availability at 25 Mbps", pov:"20%+ poverty rate", ki:"23%+ under 18", ba:"28%+ BA attainment"};
+						var text = {av:"No availability at 25 Mbps", pov:"A 20%+ poverty rate", ki:"Above U.S. average share of children", ba:"Above U.S. average BA attainment"};
 						return text[d];
 					});
 
@@ -202,11 +214,11 @@ export default function tract_maps(container){
 
 			d3.select(this).classed("selected", filter_selections[d] = !filter_selections[d]);
 
-			//passing these tests means showing the geo (e.g. no availability, high poverty)
+			//passing these tests means showing the geo (e.g. no availability, high poverty, high edu)
 			var av_test = function(d){return !filter_selections.av || (filter_selections.av && d.av == "N")}
 			var pov_test = function(d){return !filter_selections.pov || (filter_selections.pov && d.pov >= 0.2)}
-			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.3)}
-			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba < 0.28)}
+			var ki_test = function(d){return !filter_selections.ki || (filter_selections.ki && d.ki > 0.2328)}
+			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba > 0.2977)}
 
 			var composite_filter = function(d){
 				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);

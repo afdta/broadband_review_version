@@ -195,9 +195,9 @@ export default function interventions(){
 				  .style("border-top","1px solid #aaaaaa")
 				  .style("margin","0px 0px 0px 0.75rem");
 			var footnote_wrap = box.append("div").style("margin","1rem");
-			var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[id])}).enter().append("p")
+			var footnote_text = footnote_wrap.selectAll("p").data(function(d){return footnotes[id] }).enter().append("p")
 											.html(function(d,i){
-												var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+												var super_note = "<sup>" + (i+1) + "</sup> ";
 												return super_note + d;
 											});
 		}
@@ -256,9 +256,9 @@ export default function interventions(){
 								  ;
 
 				var footnote_wrap = thiz.append("div");
-				var footnote_text = footnote_wrap.selectAll("p").data(function(d){return ["<em>Notes</em>"].concat(footnotes[d.id])}).enter().append("p")
+				var footnote_text = footnote_wrap.selectAll("p").data(function(d){return footnotes[d.id] }).enter().append("p")
 												.html(function(d,i){
-													var super_note = i>0 ? "<sup>" + i + "</sup> " : "";
+													var super_note = "<sup>" + (i+1) + "</sup> ";
 													return super_note + d;
 												});
 			}

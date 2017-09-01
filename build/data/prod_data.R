@@ -12,16 +12,20 @@ data$atl25 <- substring(data$atl25,1,1)
 data$above1g <- substring(data$above1g,1,1)
 data$pov <- data$inpov/data$povuniv
 data$ba <- data$baplus_1115/data$edattain_univ_1115
+data$ki <- data$u18_1115/data$pop_1115
 
 data$access <- ifelse(data$atl25=="N", 0, data$pop_1115)
 
 data100 <- limit100(data, "cbsa")
-data100 <- data100[c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
+data100 <- data100[c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","ki")]
 names(data100) <- c("tr","pl","av","su","pop","ba","pov","ki")
 
 #write out subset
 writeLines(toJSON(data100, factor="string", na="null", digits=5), 
            con="/home/alec/Projects/Brookings/broadband/data/tract_data.json")
+
+sum(data$u18_1115)/sum(data$pop_1115)
+sum( data$baplus_1115 )/ sum(data$edattain_univ_1115)
 
 #write out Akron
 akronchi <- data[data$cbsa %in% c("10420","16980"), c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
@@ -29,20 +33,7 @@ names(akronchi) <- c("tr","pl","av","su","pop","ba","pov","ki")
 writeLines(toJSON(akronchi, factor="string", na="null", digits=5), 
            con="/home/alec/Projects/Brookings/broadband/data/akron_chicago.json")
 
-#summarize metro share of pop with 25MBPS 
-sums <- data %>% group_by(cbsa, metro) %>% summarise(pop=sum(pop_1115), access=sum(access)) 
-sums$share_access <- sums$access/sums$pop
-sums <- limit100(sums, "cbsa")
-writeLines(toJSON(sums[,c(1,3:5)], digits=5), "/home/alec/Projects/Brookings/broadband/data/metro_access.json")
 
-#share of pop by adoption tier
-share <- function(pop){return(pop/sum(pop))}
-sums2 <- data %>% group_by(cbsa, metro, pcat_10x1) %>% summarise(pop=sum(pop_1115)) %>% mutate(share=pop/sum(pop)) %>%
-                  select(-pop) %>% spread(pcat_10x1, share, fill=0, sep="_")
-
-sums2 <- limit100(sums2, "cbsa")
-
-writeLines(toJSON(sums2[,c(1,3:8)], digits=5), "/home/alec/Projects/Brookings/broadband/data/metro_adoption.json")
 
 #pull in metro level data
 gaz <- read_tsv("/home/alec/Projects/Brookings/broadband/build/data/gazetteer/2016_Gaz_cbsa_national.txt")
@@ -56,6 +47,17 @@ avail_json <- toJSON(avail_final, na="null", digits=5)
 writeLines(text = avail_json, con = "/home/alec/Projects/Brookings/broadband/data/metro_access.json")
 
 
+##adoption
+adoption <- read_xlsx("/home/alec/Projects/Brookings/broadband/build/data/Appendix C - Metropolitan Broadband Data.xlsx", sheet=3, skip=2)
+composite <-read_xlsx("/home/alec/Projects/Brookings/broadband/build/data/Appendix C - Metropolitan Broadband Data.xlsx", sheet=4, skip=0) 
+  
+adoption_final <- merge(adoption[c("CBSA", "Low-Adoption", "Moderate-Adoption", "High-Adoption")],
+                        composite[c("CBSA", "Combined Rank")], by="CBSA")
+names(adoption_final) <- c("cbsa", "low", "mod", "high", "rank")
+
+adoption_json <- toJSON(adoption_final, na="null", digits=5)
+writeLines(text = adoption_json, con = "/home/alec/Projects/Brookings/broadband/data/metro_adoption.json")
+
 
 
 #################################
@@ -63,6 +65,21 @@ writeLines(text = avail_json, con = "/home/alec/Projects/Brookings/broadband/dat
 
 #scrap ...
 
+#share of pop by adoption tier
+share <- function(pop){return(pop/sum(pop))}
+sums2 <- data %>% group_by(cbsa, metro, pcat_10x1) %>% summarise(pop=sum(pop_1115)) %>% mutate(share=pop/sum(pop)) %>%
+  select(-pop) %>% spread(pcat_10x1, share, fill=0, sep="_")
+
+sums2 <- limit100(sums2, "cbsa")
+
+writeLines(toJSON(sums2[,c(1,3:8)], digits=5), "/home/alec/Projects/Brookings/broadband/data/metro_adoption.json")
+
+
+#summarize metro share of pop with 25MBPS 
+sums <- data %>% group_by(cbsa, metro) %>% summarise(pop=sum(pop_1115), access=sum(access)) 
+sums$share_access <- sums$access/sums$pop
+sums <- limit100(sums, "cbsa")
+writeLines(toJSON(sums[,c(1,3:5)], digits=5), "/home/alec/Projects/Brookings/broadband/data/metro_access.json")
 
 
 

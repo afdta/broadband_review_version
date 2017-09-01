@@ -311,8 +311,9 @@ div.subway-tile.click-for-more-info .more-info-available{
 
 #metro-interactive .buttons > p{
   display:block;
-  padding:0.75em 1.25em;
+  padding:0.5em 1.25em;
   border:1px solid #aaaaaa;
+  background-color:#ffffff;
   border-radius:5px;
   cursor:pointer;
   margin:0px 10px 10px 0em;

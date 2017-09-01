@@ -9,14 +9,23 @@ export default function access_bubble_map(container){
 	//var select = wrap.append("div");
 	var map_wrap = wrap.append("div").style("padding","10px").append("div")
                        .style("min-height","400px")
+                       .style("min-width", "450px")
                        .style("max-width","1600px")
                        .style("margin","0px auto")
                        ;
 
 	var map = mapd(map_wrap.node());
 
-	var menu_wrap = map.menu();
-	var buttons = menu_wrap.append("div").classed("buttons", true).style("float","right");
+	var menu_wrap = map.menu().style("float","right").style("margin-left","2em");
+	
+	var title = map.title().append("p").style("font-weight","bold")
+									.style("font-size","1.15em")
+									.style("text-align","center")
+									.style("margin","0em auto 1em auto")
+									.style("border-bottom", "1px dotted #999999")
+									.style("max-width","1600px")
+									;
+	var buttons = menu_wrap.append("div").classed("buttons", true);
 	//var alldata;
 
 	d3.json("./data/metro_access.json", function(error, data){
@@ -36,9 +45,21 @@ export default function access_bubble_map(container){
 		map.projection(d3.geoAlbersUsa()).zoomable(false); //set albers composite projection as map proj
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
-		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']).flip();
+		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
+
 		var radius = metro_layer.aes.r("numwo");
-			radius.radii(4, 40);
+			radius.radii(4, 40);	
+
+		function draw_legend(){
+			map.legend.bubble(radius.ticks(), d3.format("-,.0f"), "Total pop. without access");
+			map.legend.swatch(filler.ticks(), function(v){
+				var pct = d3.format(",.1%");
+				var num1 = d3.format(",.1f");
+				return num1(v[0]*100) + "–" + pct(v[1]);
+			}, "Share of pop. without access");
+		}
+
+		draw_legend();
 
 		//handle redrawing axes in free layer
 		var show_scatter = true; //what to do
@@ -46,26 +67,44 @@ export default function access_bubble_map(container){
 		var initial_draw = true; //one-time use
 
 		var x_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.shwo}));
-		var y_scale = d3.scaleLinear().domain(d3.extent(data, function(d){return d.density}));
+		var y_scale = d3.scaleLinear().domain([0, d3.max(data, function(d){return d.density}) ] );
 		
 
 		//scatter plot layers
 		var free_layer = map.layer_free(draw_free).hide(); //hold axes
+		var small_scale = false;
 
 		function draw_free(){
 			var dims = this.dimensions;
 			var svg = this.svg;
 			var proj = map.projection();
 
-			if(dims.width < 480){
+			if(dims.width < 560){
 				radius.radii(2,20);
+				if(!small_scale){draw_legend()}
+				small_scale = true;
 			}
 			else{
 				radius.radii(4,40);
+				if(small_scale){draw_legend()}
+				small_scale = false;
 			}
 
-			x_scale.range([50, dims.width-50]);
-			y_scale.range([dims.height-50, 50]);
+			x_scale.range([100, dims.width-40]);
+			y_scale.range([dims.height-70, 15]);
+
+			//axes
+			svg.selectAll("g.axisGroup").remove();
+			var x_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(0,"+(dims.height-60)+")");
+				x_axis_g.append("text").text("Share of pop. without access").attr("x",dims.width-40).attr("y","50").attr("text-anchor","end");
+			var y_axis_g = svg.append("g").classed("axisGroup",true).attr("transform","translate(90,0)");
+				y_axis_g.append("text").text("Population per square mile").attr("transform","rotate(-90)").attr("x","-10").attr("y","-68");
+
+			var x_axis = d3.axisBottom(x_scale).tickFormat(d3.format(",.0%")).ticks(6);
+			x_axis(x_axis_g);
+
+			var y_axis = d3.axisLeft(y_scale).ticks(6);
+			y_axis(y_axis_g);
 
 			var u = svg.selectAll("circle").data(metros, function(d){return d.geo_id});
 			u.exit().remove();
@@ -101,7 +140,7 @@ export default function access_bubble_map(container){
 						return y_scale(metro_layer.lookup(d.geo_id).density);
 					});					
 				}
-
+				title.html("Population density versus the share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = true;
 			}
 			else{
@@ -135,11 +174,12 @@ export default function access_bubble_map(container){
 						free_layer.hide();
 						metro_layer.show();
 				}
-
+				title.html("Share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = false;
 			}
 
-			initial_draw = false;			
+			initial_draw = false;
+				
 		}
 
 		//initialize map
