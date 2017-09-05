@@ -1,8 +1,10 @@
 //to do: transfer geojson to data folder in project
+//to do: issue with state layer sometimes not showing
 
 //import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
 import dir from "../../../js-modules/rackspace.js";
+import format from "../../../js-modules/formats.js";
 
 export default function access_bubble_map(container){
 
@@ -36,13 +38,24 @@ export default function access_bubble_map(container){
 
 		var stategeo = map.geo("state");
 		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+		var metro_lookup = {};
+		metros.forEach(function(d,i){
+			metro_lookup[d.geo_id] = d.geo_name;
+		});
 
 		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
 		var state_layer = map.layer().geo(stategeo).attr("fill","#ffffff");
 		
 		map.projection(d3.geoAlbersUsa()).zoomable(false); //set albers composite projection as map proj
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").tooltips(function(d){
+			return "<p><b>"+metro_lookup[d.cbsa] + 
+			       "</b><br />Share of pop. without access: " + format.sh1(d.shwo) +
+			       "<br />Total pop. without access: " + format.num0(d.numwo) + "</p>"
+			       ;
+		});
+		var tooltips = metro_layer.tooltips();
+
 		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
 
 		var radius = metro_layer.aes.r("numwo");
@@ -74,7 +87,8 @@ export default function access_bubble_map(container){
 
 		function draw_free(){
 			var dims = this.dimensions;
-			var svg = this.svg;
+			var svg = d3.select(this.svg);
+			var anno_group = this.anno_group;
 			var proj = map.projection();
 
 			var redraw_legend = false
@@ -113,6 +127,9 @@ export default function access_bubble_map(container){
 				return filler.map(metro_layer.lookup(d.geo_id));
 			}).attr("stroke","#ffffff");
 
+			//applying tooltips to arbitrary selection reterns a function to clear annotations
+			var off = tooltips.apply(dots, anno_group, function(d){return metro_layer.lookup(d.geo_id)});
+
 			//only animate on init and when changing views
 			var animate = !initial_draw && show_scatter != scatter_is_shown;
 
@@ -121,6 +138,9 @@ export default function access_bubble_map(container){
 				state_layer.hide(animate ? 1000 : 0);
 				free_layer.show();
 				metro_layer.hide();
+				
+				tooltips.off();
+				off(); //clear from free layer
 
 				if(animate){
 					dots.interrupt()
@@ -130,6 +150,10 @@ export default function access_bubble_map(container){
 							return x_scale(metro_layer.lookup(d.geo_id).shwo);
 						}).attr("cy", function(d,i){
 							return y_scale(metro_layer.lookup(d.geo_id).density);
+						}).on("end", function(d,i){
+							if(i==99){
+								tooltips.on();
+							}
 						});
 				}
 				else{
@@ -137,12 +161,15 @@ export default function access_bubble_map(container){
 						return x_scale(metro_layer.lookup(d.geo_id).shwo);
 					}).attr("cy", function(d,i){
 						return y_scale(metro_layer.lookup(d.geo_id).density);
-					});					
+					});	
+					tooltips.on();				
 				}
 				title.html("Population density versus the share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = true;
 			}
 			else{
+				tooltips.off();
+				off(); //clear anno from free layer
 				//show map				
 				if(animate){
 					state_layer.show(2000);
@@ -158,8 +185,9 @@ export default function access_bubble_map(container){
 						.on("end",function(d,i){
 							if(i==99){
 								us_layer.show(400);
-								free_layer.hide(200);
+								free_layer.hide();
 								metro_layer.show();
+								tooltips.on();
 							}
 						});
 				}
@@ -172,6 +200,7 @@ export default function access_bubble_map(container){
 						us_layer.show();
 						free_layer.hide();
 						metro_layer.show();
+						tooltips.on();
 				}
 				title.html("Share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = false;

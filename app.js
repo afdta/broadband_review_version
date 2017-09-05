@@ -774,6 +774,234 @@ function aesthetics(data){
 
 }
 
+//to do: make more explicit whether scrollbars are included
+
+function get_dim(el){
+
+	//viewport height/width -- note that window.innerwidth includes scrollbars so will be wider than clientWidth
+	var window_height = Math.max(document.documentElement.clientHeight, (window.innerHeight || 0));
+	var window_width = Math.max(document.documentElement.clientWidth, (window.innerWidth || 0));
+
+	if(arguments.length > 0){
+		var element = el;
+		var get_viewport = false;
+	}
+	else{ 
+		var element = document.documentElement;
+		var get_viewport = true;
+	}
+
+	var err = false;
+
+	try{
+		var box = element.getBoundingClientRect();
+		var w = Math.floor(box.right - box.left);
+		var h = Math.floor(box.bottom - box.top);
+	}
+	catch(e){
+		var box = {};
+		var w = window_width;
+		var h = window_height;
+		err = true;
+	}
+
+	//if we want viewport dims: 1) derived w is better than window_width because it subtracts scroll bars,
+	//							2) window_height is best because it is limited to viewable area while derived h will cover the whole doc
+	//							   --note that window_height may not subtract horizontal scroll bar height, but this is less of a problem
+	var dim = {width: w, height: (get_viewport ? window_height : h), error:err, box:box, viewport_height: window_height};
+
+	return dim;
+}
+
+function tooltips(layer, tooltip_node, parent_node, annotation_group){
+
+	var parent = d3.select(parent_node);
+	var tip = d3.select(tooltip_node);
+	var tip_width = 300;
+
+	var enabled = false;
+
+	//tooltip text formatting function
+	var text = function(d){
+		return JSON.stringify(d);
+	};
+
+	var viewport = get_dim(); //dimentions of viewport
+	var container_viewport = get_dim(parent_node); //dimnsions of tooltip container;
+
+	//hide on mousedown - useful on mobile
+	d3.select(parent_node).on("mousedown", hide);
+
+	function show(pos, text){
+		tip.style("visibility","visible").style("left", pos.left+"px").style("top",pos.top+"px")
+		.style("width",tip_width+"px").style("min-height","100px").style("border","1px solid #aaaaaa")
+		.style("border-radius","5px").style("background-color","#ffffff");
+		
+	}
+
+	function hide(){
+		tip.style("visibility","hidden").style("left", "-300px").style("top","100%");
+	}
+
+	//clone an svg feature attributes in the anno_group layer 
+	function annotate_feature(svg_feature, anno_group){
+	
+		if(arguments.length < 2 || !anno_group){anno_group = annotation_group;}
+
+		var ag = d3.select(anno_group);
+		ag.selectAll("*").remove(); //clear the layer
+
+		if(svg_feature!=null){
+
+			var thiz = d3.select(svg_feature);
+			var datum = thiz.datum();
+			
+			var dattr = thiz.attr("d");
+			var type = svg_feature.tagName.toLowerCase();
+			var is_points = type == "circle";
+
+
+			if(is_points){
+				var point = ag.append("circle").attr("cx", thiz.attr("cx"))
+													   .attr("cy", thiz.attr("cy"))
+													   .attr("r", thiz.attr("r"))
+													   .attr("fill",thiz.attr("fill"))
+													   .attr("stroke","#111111")
+													   .attr("stroke-width","1.5");
+			}
+			else{
+				var poly = ag.append("path").attr("d", thiz.attr("d"))
+													.attr("fill", thiz.attr("fill"))
+													.attr("stroke", "#111111")
+													.attr("stroke-width","1.5");
+			}
+		}
+	}
+
+
+	var T = {};
+
+	//register tooltips that apply to geo layer on an arbitrary selection of points or polys, 
+	//anno_group is where to draw svg annotations (e.g. highlights, etc)
+	//optionally specifying a data accessor for each element
+	T.apply = function(sel, anno_group, data_accessor){
+		
+		var accessor = typeof data_accessor === "function" ? data_accessor : function(d){return layer.lookup(d.properties.geo_id)};
+
+		if(arguments.length < 2 || !anno_group){anno_group = annotation_group;}
+		
+
+		sel.on("mouseenter", function(d,i){
+			try{
+				if(!enabled){throw "Tooltips are disabled"}
+				//update on mouseenter
+				viewport = get_dim(); //dimentions of viewport
+				container_viewport = get_dim(parent_node);
+				var mouse = d3.mouse(parent_node);
+
+				annotate_feature(this, anno_group);
+				var txt = text.call(this, accessor(d));
+
+				tip.html(txt);
+
+				if(tip_width + 15 + mouse[0] <= container_viewport.width){
+					var left = mouse[0] + 15;
+				}
+				else if(mouse[0] - 15 - tip_width >= 0){
+					var left= mouse[0] - 15 - tip_width;
+				}
+				else{
+					var left = 0;
+				}
+
+				var top = mouse[1] - 30;
+
+
+				//to do -- run these calcs in timeout at some point to ensure sizing is correct -- for some reason is very slow in callback
+				var box = tip.node().getBoundingClientRect();
+				var container_top = container_viewport.box.top;
+
+				var height = box.bottom - box.top;
+				
+				//if((top + height + container_top) > viewport.height){
+				//	top = viewport.height - (height + container_top);
+				//}
+
+				//if((top + container_top < 0)){
+				//	top = 0 - container_top;
+				//}
+
+				show({left: left, top:top}, txt);
+
+			}
+			catch(e){
+				//console.log(e);
+				hide();
+			}
+			//console.log(layer.lookup(d.properties.geo_id));
+		});
+
+		//return a function that will clear annotations from anno_group
+		var clearIt = function(){
+			annotate_feature(null, anno_group);
+		};
+
+		return clearIt;
+	};
+
+	T.width = function(w){
+		if(arguments.length==0){
+			return tip_width;
+		}
+		else{
+			tip_width = w;
+			return T;
+		}
+	};
+
+	T.off = function(){
+		enabled = false;
+		annotate_feature(null); //remove any annotation
+		hide();
+		return T;
+	};
+
+	T.hide = function(){
+		annotate_feature(null);
+		hide();
+	};
+
+	//apply tooltips to all geo features in a layer
+	T.on = function(fn){
+		enabled = true;
+
+		var geodata = layer.geo();
+		if(geodata != null){
+			var i = -1;
+			while(++i < geodata.length){
+				if(geodata[i].hasOwnProperty("selection")){
+					T.apply(geodata[i].selection);
+				}
+			}
+		}
+
+		if(arguments.length > 0){
+			text = fn;
+			return T;
+		}
+		else{
+			return text;
+		}
+	};
+
+	T.enabled = function(){
+		return enabled;
+	};
+
+	return T;
+
+}
+
 //left off with L.geo -- how to handle multiple layers of data
 //need to implement L.aes to return whole aes methods to user -- need the option of limiting aesthetics to data on map -- or is that really the only option (yes, i think so)
 
@@ -827,10 +1055,11 @@ function layer(){
 	var lookup = null;
 
 	//this is why you shouldn't call layer() directly, layers are created with the parent map object as this; all layers share same projection
-	var map = this;
+	var map = this.map;
 	//console.log(map);
-	var svg = map.svg.append("g"); //just a wrapper -- to avoid reordering layers, don't touch this
-	var svg_group = svg.append("g"); //provides a quick way to remove all sub-layers
+	var svg = map.svg.append("g"); //just a wrapper -- to avoid reordering layers, don't touch this except to show/hide
+	var svg_group = svg.append("g"); //one group to hold all geos -- provides a quick way to remove all sub-layers
+	var anno_group = svg.append("g").style("pointer-events","none"); //annotation layer on top of main geo layer
 
 	//record any warnings about the layer
 	var warnings = {
@@ -1144,17 +1373,11 @@ function layer(){
 	};
 
 	//note that points and polygons are not compatible in the same layer because they do not share the same eligible attributes
-	L.geo = function(geo_data, append){
+	var new_geo = function(geo_data, append){
 
-		//append the geo data to the existing geodata in this layer
-		append = !!append;
-
-		//accepted types geojson featurecolection or array of points
+		//accepted types geojson featurecollection for polygons, or array of points for points (to be converted to featurecollection as well)
 		//geographic identifier must be "geo_id", geographic name, if relevant, must be "geo_name"
-		if(arguments.length==0 || !geo_data){
-			return geodata;
-		}
-		else if(geo_data.hasOwnProperty("type") && geo_data.type=="FeatureCollection"){
+		if(geo_data.hasOwnProperty("type") && geo_data.type=="FeatureCollection"){
 			//geojson -- geo_data.features == [{type:"feature", properties:{prop:propval}}, {}] 
 			if(is_points){append=false;} //do not mix points and polys in layer
 			is_points = false;
@@ -1208,6 +1431,8 @@ function layer(){
 		if(geodata == null || !append){
 			svg_group.remove(); //remove main layer and sub-layers
 			svg_group = svg.append("g"); //new main layer
+			
+			anno_group.raise(); //keep this layer's annotation group on top
 			geodata = [{data: geo_data, g:svg_group.append("g")}];
 		}
 		else{
@@ -1220,6 +1445,29 @@ function layer(){
 			set_aes();
 		}
 
+	};
+
+	L.geo = function(geo_data){
+		if(arguments.length==0 || !geo_data){
+			return geodata;
+		}
+		else{
+			//replace existing geo
+			new_geo(geo_data, false);
+		} 
+		return L;
+	};
+
+	//add geo to an existing layer -- useful if making async data pulls, but note auto projections will be based off of first geo json
+	//in any layer used for that purpose, also will not append mixed types (polys and points). if no geodata is present, this is the same as L.geo 
+	L.append_geo = function(geo_data){
+		if(arguments.length==0 || !geo_data){
+			return geodata;
+		}
+		else{
+			//append to existing geo
+			new_geo(geo_data, true);
+		} 
 		return L;
 	};
 
@@ -1247,6 +1495,22 @@ function layer(){
 		    .parallels([parallel0, parallel1]);
 
 	};	
+
+	//tooltips
+	var ttips = tooltips(L, this.dom.tooltip, this.dom.parent, anno_group.node());
+	L.tooltips = function(fn){
+		if(arguments.length == 0){
+			return ttips;
+		}
+		else if(!fn){
+			ttips.off();
+		}
+		else{
+			ttips.on(fn);
+		}
+
+		return L;
+	};
 
 	//draw the layer
 	L.draw = function(resize_only){
@@ -1354,7 +1618,9 @@ function layer(){
 				tmp.exit().remove();
 				geodata[i].selection = tmp.enter().append("circle").merge(tmp);
 
-				apply_aes(geodata[i].selection, "point");	
+				apply_aes(geodata[i].selection, "point");
+				//apply tooltip events to all features in layer
+				if(ttips.enabled()){ttips.on();}
 			}
 			
 		}
@@ -1367,6 +1633,8 @@ function layer(){
 				geodata[i].selection = tmp.enter().append("path").merge(tmp);
 
 				apply_aes(geodata[i].selection, "poly");
+				//apply tooltip events to all features in layer -- need to update here when selection is created for geodata
+				if(ttips.enabled()){ttips.on();}
 			}
 
 		}
@@ -1389,6 +1657,8 @@ function layer_free(draw_fn){
 	var svg = map.svg.append("g"); //just a wrapper for the layer -- to avoid reordering layers, don't touch this
 	
 	var svg_group = svg.append("g"); //provides a quick way to remove all sub-layers
+
+	var anno_group = svg.append("g").style("pointer-events","none");
 
 	var get_geo_id; //data accessor
 
@@ -1439,53 +1709,13 @@ function layer_free(draw_fn){
 		return L;
 	};
 
-
 	//draw the layer
 	L.draw = function(resize_only){
-		var context = {dimensions: map.get_dim(), svg:svg_group};
+		var context = {dimensions: map.get_dim(), svg:svg_group.node(), anno_group:anno_group.node()};
 		draw_fn.call(context);
 	};
 	
 	return L;
-}
-
-//to do: make more explicit whether scrollbars are included
-
-function get_dim(el){
-
-	//viewport height/width -- note that window.innerwidth includes scrollbars so will be wider than clientWidth
-	var window_height = Math.max(document.documentElement.clientHeight, (window.innerHeight || 0));
-	var window_width = Math.max(document.documentElement.clientWidth, (window.innerWidth || 0));
-
-	if(arguments.length > 0){
-		var element = el;
-		var get_viewport = false;
-	}
-	else{ 
-		var element = document.documentElement;
-		var get_viewport = true;
-	}
-
-	var err = false;
-
-	try{
-		var box = element.getBoundingClientRect();
-		var w = Math.floor(box.right - box.left);
-		var h = Math.floor(box.bottom - box.top);
-	}
-	catch(e){
-		var box = {};
-		var w = window_width;
-		var h = window_height;
-		err = true;
-	}
-
-	//if we want viewport dims: 1) derived w is better than window_width because it subtracts scroll bars,
-	//							2) window_height is best because it is limited to viewable area while derived h will cover the whole doc
-	//							   --note that window_height may not subtract horizontal scroll bar height, but this is less of a problem
-	var dim = {width: w, height: (get_viewport ? window_height : h), error:err, box:box, viewport_height: window_height};
-
-	return dim;
 }
 
 //synchronous geojson api
@@ -1605,7 +1835,7 @@ function legend(container){
 	var bubble_values = null;
 	var swatch_values = null;
 
-	//build new legends from scratch v2r, v2c = value to radius/color (mapping functions)
+	//
 	L.bubble = function(values, formatter, title){
 		bubble_values = values;
 
@@ -1735,18 +1965,24 @@ function legend(container){
 		return L;
 	};
 
-	L.gradient = function(){
-
+	L.add = function(name, callback){
+		inner_wrap.selectAll("div." + name).remove();
+		var wrap = inner_wrap.append("div").classed(name, true).style("float","left").style("margin","0em 1em 0em 2em");
+		callback(wrap);
 	};
+
+	//L.gradient = function(){
+
+	//}
 
 	//set legend as portrait and redraw if already drawn
-	L.portrait = function(){
-		landscape = false;
-		if(bubble_values != null){
-			L.bubble(bubble_values, bubble_v2r, bubble_v2c);
-		}
-		return L;
-	};
+	//L.portrait = function(){
+	//	landscape = false;
+	//	if(bubble_values != null){
+	//		L.bubble(bubble_values, bubble_v2r, bubble_v2c);
+	//	}
+	//	return L;
+	//}
 
 	return L;
 }
@@ -1815,22 +2051,22 @@ function mapd(root_container){
 									.style("height","100%")
 									.style("min-height","150px")
 									.style("position","relative")
-									.style("overflow","hidden");
+									.style("overflow","visible");
 
 	var map_canvas = outer_wrap.append("canvas").style("width","100%").style("height","100%").style("position","absolute").style("z-index","1");
 	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%").style("position","relative").style("z-index","2");
 
-	//outer_wrap.append("div").style("width","50%").style("height","50%").style("position","absolute")
-	//						.style("border","1px solid orange").style("top","0px").style("z-index","10");
-
 	var tooltip_wrap = outer_wrap.append("div")
 								 .style("width","100px")
-								 .style("height","200px")
+								 .style("min-height","100px")
 								 .style("position","absolute")
 								 .style("z-index","3")
 								 .style("top","-200px")
 								 .style("left","-100px")
-								 .style("visibility","hidden");
+								 .style("visibility","hidden")
+								 .style("padding","0.5em 1em")
+								 .classed("makesans",true)
+								 .style("pointer-events","none");
 
 	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","3rem").style("left","80%")
 												.style("width","70px").style("height","50px")
@@ -1875,7 +2111,13 @@ function mapd(root_container){
 
 	//layer should only be called as a method of map so the proper context can be set
 	map.layer = function(){
-		var l = layer.call(map);
+		var dom_context = {
+							root: root_container,
+							parent: outer_wrap.node(),
+							tooltip: tooltip_wrap.node()
+						  };
+
+		var l = layer.call({map:map, dom:dom_context});
 		layers.push(l);
 		return l;
 	};
@@ -2506,6 +2748,14 @@ function tract_maps(container){
 						   );
 		map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
 
+		map.legend.add("primary-city", function(wrap){
+			var svg = wrap.append("svg").style("width","150px").style("height","80px");
+			svg.append("path").attr("d", "M0,45 l40,0").attr("stroke-width","6").attr("stroke", "#FFD101");
+			svg.append("path").attr("d", "M0,45 l40,0").attr("stroke-width","1.5").attr("stroke", "#695600").attr("stroke-dasharray","4,2");
+			svg.append("text").text("City boundary").attr("x",45).attr("y",50);
+
+		});
+
 		map.draw();
 	}	
 
@@ -2565,6 +2815,91 @@ function tract_maps(container){
 
 }
 
+//v1.0 developed for congressional district poverty, gig economy, and gci summit
+
+var format = {};
+format.rank = function(r){
+	try{
+	    if(r == null){
+	        throw "badInput";
+	    }
+	    else{
+	        
+	        var c = r + "";
+	        var f = +(c.substring(c.length-1)); //take last letter and coerce to an integer
+	         
+	        var e = ["th","st","nd","rd","th","th","th","th","th","th"];
+	 
+	        var m = (+r)%100; 
+	        var r_ = (m>10 && m<20) ? c + "th" : (c + e[f]); //exceptions: X11th, X12th, X13th, X14th
+	    }
+	}
+	catch(e){
+	    var r_ = r+"";
+	}
+
+	return r_; 
+};
+
+//percent change
+format.pct0 = d3.format("+,.0%");
+format.pct1 = d3.format("+,.1%");
+
+//percent change
+format.ch0 = d3.format("+,.0f");
+format.ch1 = d3.format("+,.1f");
+
+//shares
+format.sh0 = d3.format(",.0%");
+format.sh1 = d3.format(",.1%");
+
+//numeric
+format.num0 = d3.format(",.0f");
+format.num1 = d3.format(",.1f");
+format.num2 = d3.format(",.2f");
+format.num3 = d3.format(",.3f");
+
+//USD
+format.doll0 = function(v){return "$" + format.num0(v)};
+format.doll1 = function(v){return "$" + format.num1(v)};
+format.doll2 = function(v){return "$" + format.num2(v)};
+
+format.dolle30 = function(v){return "$" + format.num0(v*1000)};
+
+//id
+format.id = function(v){return v};
+
+//possessive
+format.possessive = function(v){
+	var s = v+"";
+	var last = s.slice(-1).toLowerCase();
+	return last=="s" ? s+"'" : s+"'s";
+};
+
+//wrapper that handles missings/nulls
+format.fn = function(v, fmt){
+	if(format.hasOwnProperty(fmt)){
+		var fn = format[fmt];
+	}
+	else{
+		var fn = format.id;
+	}
+	return v==null ? "N/A" : fn(v);
+};
+
+//similar to fn above, but returns a decorated function instead of a value
+format.fn0 = function(fmt){
+	if(format.hasOwnProperty(fmt)){
+		var fn = format[fmt];
+	}
+	else{
+		var fn = format.id;
+	}
+	return function(v){
+		return v==null ? "N/A" : fn(v);
+	}
+};
+
 //to do: transfer geojson to data folder in project
 
 //import metro_select from "../../../js-modules/metro-select.js";
@@ -2619,6 +2954,10 @@ function subscription_bubble_map(container){
 
 		var stategeo = map.geo("state");
 		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+		var metro_lookup = {};
+		metros.forEach(function(d,i){
+			metro_lookup[d.geo_id] = d.geo_name;
+		});
 
 		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
 		var state_layer = map.layer().geo(stategeo).attr("fill", "#ffffff");
@@ -2627,6 +2966,25 @@ function subscription_bubble_map(container){
 		map.projection(projection);
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa").attr("stroke","#999999");
+
+		var indicator = "low";
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").tooltips(function(d){
+			if(indicator == "low"){
+				var line = "<br />Share of pop. in low subscription neighborhoods: " + format.sh1(d.low);
+			}
+			else if(indicator == "mod"){
+				var line = "<br />Share of pop. in moderate subscription neighborhoods: " + format.sh1(d.mod);
+			}
+			else if(indicator == "high"){
+				var line = "<br />Share of pop. in high subscription neighborhoods: " + format.sh1(d.high);
+			}
+			else if(indicator == "rank"){
+				var line = "<br />Composite rank (out of 100): " + format.rank(d.rank);
+			}
+
+			return "<p><b>"+metro_lookup[d.cbsa] + "</b>" + line + "</p>";
+
+		});		
 
 		//fill color function
 		var filler = metro_layer.aes.fill(defaul).quantize(); //(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
@@ -2640,8 +2998,8 @@ function subscription_bubble_map(container){
 			return Math.ceil(v[0]) + "–" + Math.floor(v[1]);
 		};
 
-		function draw_legend(title, format){
-			map.legend.swatch(filler.ticks(), format, title);
+		function draw_legend(title, format$$1){
+			map.legend.swatch(filler.ticks(), format$$1, title);
 		}
 
 		draw_legend("Share of pop. in low subscription neighborhoods", ranger);
@@ -2675,6 +3033,9 @@ function subscription_bubble_map(container){
 				var title = "Composite ranking (1 = best performance)";
 			}
 
+			indicator = d;
+			metro_layer.tooltips().hide();
+
 			draw_legend(title, d=="rank" ? ranker : ranger);
 
 			map.draw();
@@ -2687,6 +3048,7 @@ function subscription_bubble_map(container){
 }
 
 //to do: transfer geojson to data folder in project
+//to do: issue with state layer sometimes not showing
 
 //import metro_select from "../../../js-modules/metro-select.js";
 function access_bubble_map(container){
@@ -2719,13 +3081,24 @@ function access_bubble_map(container){
 
 		var stategeo = map.geo("state");
 		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+		var metro_lookup = {};
+		metros.forEach(function(d,i){
+			metro_lookup[d.geo_id] = d.geo_name;
+		});
 
 		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
 		var state_layer = map.layer().geo(stategeo).attr("fill","#ffffff");
 		
 		map.projection(d3.geoAlbersUsa()).zoomable(false); //set albers composite projection as map proj
 
-		var metro_layer = map.layer().geo(metros).data(data, "cbsa");
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").tooltips(function(d){
+			return "<p><b>"+metro_lookup[d.cbsa] + 
+			       "</b><br />Share of pop. without access: " + format.sh1(d.shwo) +
+			       "<br />Total pop. without access: " + format.num0(d.numwo) + "</p>"
+			       ;
+		});
+		var tooltips = metro_layer.tooltips();
+
 		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
 
 		var radius = metro_layer.aes.r("numwo");
@@ -2757,7 +3130,8 @@ function access_bubble_map(container){
 
 		function draw_free(){
 			var dims = this.dimensions;
-			var svg = this.svg;
+			var svg = d3.select(this.svg);
+			var anno_group = this.anno_group;
 			var proj = map.projection();
 
 			var redraw_legend = false;
@@ -2796,6 +3170,9 @@ function access_bubble_map(container){
 				return filler.map(metro_layer.lookup(d.geo_id));
 			}).attr("stroke","#ffffff");
 
+			//applying tooltips to arbitrary selection reterns a function to clear annotations
+			var off = tooltips.apply(dots, anno_group, function(d){return metro_layer.lookup(d.geo_id)});
+
 			//only animate on init and when changing views
 			var animate = !initial_draw && show_scatter != scatter_is_shown;
 
@@ -2804,6 +3181,9 @@ function access_bubble_map(container){
 				state_layer.hide(animate ? 1000 : 0);
 				free_layer.show();
 				metro_layer.hide();
+				
+				tooltips.off();
+				off(); //clear from free layer
 
 				if(animate){
 					dots.interrupt()
@@ -2813,6 +3193,10 @@ function access_bubble_map(container){
 							return x_scale(metro_layer.lookup(d.geo_id).shwo);
 						}).attr("cy", function(d,i){
 							return y_scale(metro_layer.lookup(d.geo_id).density);
+						}).on("end", function(d,i){
+							if(i==99){
+								tooltips.on();
+							}
 						});
 				}
 				else{
@@ -2820,12 +3204,15 @@ function access_bubble_map(container){
 						return x_scale(metro_layer.lookup(d.geo_id).shwo);
 					}).attr("cy", function(d,i){
 						return y_scale(metro_layer.lookup(d.geo_id).density);
-					});					
+					});	
+					tooltips.on();				
 				}
 				title.html("Population density versus the share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = true;
 			}
 			else{
+				tooltips.off();
+				off(); //clear anno from free layer
 				//show map				
 				if(animate){
 					state_layer.show(2000);
@@ -2841,8 +3228,9 @@ function access_bubble_map(container){
 						.on("end",function(d,i){
 							if(i==99){
 								us_layer.show(400);
-								free_layer.hide(200);
+								free_layer.hide();
 								metro_layer.show();
+								tooltips.on();
 							}
 						});
 				}
@@ -2855,6 +3243,7 @@ function access_bubble_map(container){
 						us_layer.show();
 						free_layer.hide();
 						metro_layer.show();
+						tooltips.on();
 				}
 				title.html("Share of metro area residents without access to 25 Mbps broadband");
 				scatter_is_shown = false;
@@ -3340,20 +3729,19 @@ function main(){
 
 
   //local
-  dir.local("./");
-  dir.add("graphics", "assets/graphics");
-  dir.add("topo", "assets/tract_geo");
-  dir.add("data", "assets/cbsa_data");
-  dir.add("metdata", "assets/summary_data");
-  dir.add("citytopo", "assets/city_geo");
-
-  //production data
-  //dir.add("dirAlias", "rackspace-slug/path/to/dir");
+  //dir.local("./");
   //dir.add("graphics", "assets/graphics");
   //dir.add("topo", "assets/tract_geo");
   //dir.add("data", "assets/cbsa_data");
   //dir.add("metdata", "assets/summary_data");
   //dir.add("citytopo", "assets/city_geo");
+
+  //production data
+  dir.add("graphics", "broadband-distress/assets/graphics");
+  dir.add("topo", "broadband-distress/assets/tract_geo");
+  dir.add("data", "broadband-distress/assets/cbsa_data");
+  dir.add("metdata", "broadband-distress/assets/summary_data");
+  dir.add("citytopo", "broadband-distress/assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||

@@ -3,6 +3,7 @@
 //import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
 import dir from "../../../js-modules/rackspace.js";
+import format from "../../../js-modules/formats.js";
 
 export default function subscription_bubble_map(container){
 
@@ -58,6 +59,10 @@ export default function subscription_bubble_map(container){
 
 		var stategeo = map.geo("state");
 		var metros = map.geo("metro").filter(function(d){return d.t100==1});
+		var metro_lookup = {};
+		metros.forEach(function(d,i){
+			metro_lookup[d.geo_id] = d.geo_name;
+		});
 
 		var us_layer = map.layer().geo(map.geo("us")).attr("filter","url(#feBlur2)");
 		var state_layer = map.layer().geo(stategeo).attr("fill", "#ffffff");
@@ -66,6 +71,25 @@ export default function subscription_bubble_map(container){
 		map.projection(projection);
 
 		var metro_layer = map.layer().geo(metros).data(data, "cbsa").attr("stroke","#999999");
+
+		var indicator = "low";
+		var metro_layer = map.layer().geo(metros).data(data, "cbsa").tooltips(function(d){
+			if(indicator == "low"){
+				var line = "<br />Share of pop. in low subscription neighborhoods: " + format.sh1(d.low);
+			}
+			else if(indicator == "mod"){
+				var line = "<br />Share of pop. in moderate subscription neighborhoods: " + format.sh1(d.mod);
+			}
+			else if(indicator == "high"){
+				var line = "<br />Share of pop. in high subscription neighborhoods: " + format.sh1(d.high);
+			}
+			else if(indicator == "rank"){
+				var line = "<br />Composite rank (out of 100): " + format.rank(d.rank);
+			}
+
+			return "<p><b>"+metro_lookup[d.cbsa] + "</b>" + line + "</p>";
+
+		});		
 
 		//fill color function
 		var filler = metro_layer.aes.fill(defaul).quantize() //(['#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594']);
@@ -113,6 +137,9 @@ export default function subscription_bubble_map(container){
 			else if(d=="rank"){
 				var title = "Composite ranking (1 = best performance)";
 			}
+
+			indicator = d;
+			metro_layer.tooltips().hide();
 
 			draw_legend(title, d=="rank" ? ranker : ranger);
 

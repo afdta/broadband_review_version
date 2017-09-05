@@ -175,6 +175,14 @@ export default function tract_maps(container){
 						   )
 		map.legend.wrap.style("max-width","1200px").style("margin","0px auto");
 
+		map.legend.add("primary-city", function(wrap){
+			var svg = wrap.append("svg").style("width","150px").style("height","80px");
+			svg.append("path").attr("d", "M0,45 l40,0").attr("stroke-width","6").attr("stroke", "#FFD101");
+			svg.append("path").attr("d", "M0,45 l40,0").attr("stroke-width","1.5").attr("stroke", "#695600").attr("stroke-dasharray","4,2");
+			svg.append("text").text("City boundary").attr("x",45).attr("y",50);
+
+		});
+
 		map.draw();
 	};	
 
