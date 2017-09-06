@@ -3,6 +3,7 @@
 import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
 import dir from "../../../js-modules/rackspace.js";
+import format from "../../../js-modules/formats.js";
 
 export default function tract_maps(container){
 
@@ -24,7 +25,7 @@ export default function tract_maps(container){
 
 	function get_and_map(cbsa){
 		if(geoCache.hasOwnProperty(cbsa) && dataCache.hasOwnProperty(cbsa) && cityCache.hasOwnProperty(cbsa)){
-			map_tract(dataCache[cbsa], geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
+			map_tract(dataCache[cbsa], geoCache[cbsa], cityCache[cbsa], borderCache[cbsa], cbsa);
 		}
 		else{
 			//once these are loaded, you can map it
@@ -63,7 +64,7 @@ export default function tract_maps(container){
 				topo_loaded = true;
 
 				if(data_loaded && city_loaded){
-					map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc);
+					map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc, cbsa);
 				}		
 			});
 
@@ -76,7 +77,7 @@ export default function tract_maps(container){
 				data_loaded = true;
 
 				if(topo_loaded && city_loaded){
-					map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa]);
+					map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa], cbsa);
 				}
 
 			});
@@ -92,7 +93,7 @@ export default function tract_maps(container){
 				city_loaded = true;
 
 				if(topo_loaded && data_loaded){
-					map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa]);
+					map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa], cbsa);
 				}
 			});
 		}
@@ -124,15 +125,21 @@ export default function tract_maps(container){
 
 
 	//do the mapping after all data has been loaded
-	function map_tract(tract_data, geoj, citygeo, border){
+	function map_tract(tract_data, geoj, citygeo, border, cbsa){
 		map.clear();
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
 
-		var ttips = tract_layer.tooltips(function(d){return JSON.stringify(d)});
+		var ttips = tract_layer.tooltips(function(d){
+			var pop = "<b>Neighborhood population</b>: " + format.num0(d.pop);
+			var availability = "<b>Availability at 25 Mbps</b>: " + (d.av=="N" ? "No" : "Yes");
+			var poverty = "<b>Poverty rate</b>: " + (d.pov==null ? "N/A" : format.sh1(d.pov));
+			var ba = "<b>BA attainment rate</b>: " + (d.ba==null ? "N/A" : format.sh1(d.ba));
+			var kids = "<b>Under 18 share of pop.</b>: " + (d.ki==null ? "N/A" : format.sh1(d.ki));
+			return "<p>" + pop + "<br/>" + availability + "<br />" + poverty + "<br />" + ba + "<br />" + kids + "<br />Census tract ID: " + d.tr + "</p>";
+		});
 
-		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
 		tract_layer.data(tract_data, "tr");
 
 		var cols = ['#a50f15','#a50f15','#ef3b2c','#9ecae1','#6baed6','#084594'];
@@ -162,7 +169,20 @@ export default function tract_maps(container){
 			//no-op
 		}
 
+
 		var projection = tract_layer.get_albers();
+		
+		//if(cbsa == "46520"){
+		//	var honolulu = tract_layer.geo()[0];
+		//	var honolulu_feat = honolulu.data.features;
+		//	var new_feat = []; 
+		//	honolulu_feat.forEach(function(d){
+		//		if(d.properties.geo_id!="15003981200"){
+		//			new_feat.push(d);
+		//		}
+		//	});
+		//	honolulu.data.features = new_feat;
+		//}
 
 		map.projection(projection);
 
@@ -186,6 +206,7 @@ export default function tract_maps(container){
 		});
 
 		map.draw();
+
 	};	
 
 

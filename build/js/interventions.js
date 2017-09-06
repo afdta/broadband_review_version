@@ -338,8 +338,6 @@ export default function interventions(){
 	I.grid_small = function(container, supercluster, text_color){
 		var outer_wrap = d3.select(container);
 
-		//var turn_on = descriptions.links[supercluster+""];
-
 		var col = arguments.length > 2 ? text_color : "#333333";
 
 		outer_wrap.select("div.subway-tile-small-grid").remove();	
@@ -392,12 +390,6 @@ export default function interventions(){
 		dots.append("p").text(function(d){return d})
 							.style("color", function(d){
 								return "#ffffff";
-								//if(turn_on.hasOwnProperty(d)){
-								//	return supercluster in {"2":2, "6":1, "7":1} ? "#111111" : "#ffffff";
-								//}
-								//else{
-								//	return "#ffffff";
-								//}
 							});	
 
 		var timer;
@@ -411,7 +403,6 @@ export default function interventions(){
 		dots.on("mouseenter", function(d){
 			clearTimeout(timer);
 			hover_text.text(descriptions.titles[d]).transition().duration(0).style("opacity",1);
-			//.style("opacity",turn_on.hasOwnProperty(d) ? 1 : 0.35);
 		})	
 		dots.on("mouseleave", function(d){
 			timer = setTimeout(function(){

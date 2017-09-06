@@ -1,6 +1,3 @@
-//to do: transfer geojson to data folder in project
-
-//import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
 import dir from "../../../js-modules/rackspace.js";
 import format from "../../../js-modules/formats.js";
@@ -10,7 +7,7 @@ export default function subscription_bubble_map(container){
 	var wrap = d3.select(container);
 	
 	var lede = wrap.append("div").style("max-width","1200px").style("margin","0px auto").style("padding","0em 2em");
-		lede.append("p").html('Map the share of each metro area\'s population living in low, moderate, or high subscription neighborhoods. Or select "composite ranking" to view rankings based on combined performance on broadband availability and adoption. (See the full report for more details on how these rankings were calulated.)')
+		lede.append("p").html('Map the share of each metro area\'s population living in low, moderate, or high subscription neighborhoods. Or select "composite ranking" to view rankings based on combined performance on broadband availability and adoption. (See the full report for more details on how these rankings were calculated.)')
 			.style("max-width","800px")
 			;
 

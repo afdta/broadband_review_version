@@ -1,7 +1,6 @@
 //to do: transfer geojson to data folder in project
 //to do: issue with state layer sometimes not showing
 
-//import metro_select from "../../../js-modules/metro-select.js";
 import mapd from "../../../js-modules/maps/mapd.js";
 import dir from "../../../js-modules/rackspace.js";
 import format from "../../../js-modules/formats.js";
