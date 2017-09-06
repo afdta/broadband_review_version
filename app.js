@@ -254,6 +254,7 @@ function metro_select(){
 
 //to do; handling missing values ok?
 //to do: look into the ticks methods for legends -- useful or should the api be pruned?
+//to do: create more unit tests for scales
 
 //color palettes
 //credit: these palettes includes color specifications and designs developed by Cynthia Brewer (http://colorbrewer.org/).
@@ -2062,13 +2063,13 @@ function mapd(root_container){
 								 .style("width","100px")
 								 .style("min-height","100px")
 								 .style("position","absolute")
-								 .style("z-index","3")
 								 .style("top","-200px")
 								 .style("left","-100px")
 								 .style("visibility","hidden")
 								 .style("padding","0.5em 1em")
 								 .classed("makesans",true)
-								 .style("pointer-events","none");
+								 .style("pointer-events","none")
+								 .style("z-index","20");
 
 	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","3rem").style("left","80%")
 												.style("width","70px").style("height","50px")
@@ -2077,7 +2078,8 @@ function mapd(root_container){
 												.style("padding","10px 15px")
 												.style("border","1px solid #dddddd")
 												.style("border-radius","5px")
-												.style("background-color","rgba(255,255,255,0.8)");
+												.style("background-color","rgba(255,255,255,0.8)")
+												.style("z-index","10");
 
 	var zoom_svg = zoom_button.append("svg").attr("width","40px").attr("height","30px")
 									.attr("viewBox","0 0 40 30");
@@ -2526,6 +2528,12 @@ function mapd(root_container){
 		
 		//when in use, wipe canvas too, reset legend
 
+		//hide tooltip
+		tooltip_wrap.style("top","-200px")
+					.style("left","-100px")
+					.style("visibility","hidden")
+					.html("");		
+
 		return map;
 	};
 
@@ -2706,6 +2714,8 @@ function tract_maps(container){
 
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
+
+		var ttips = tract_layer.tooltips(function(d){return JSON.stringify(d)});
 
 		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
 		tract_layer.data(tract_data, "tr");
@@ -3731,19 +3741,19 @@ function main(){
 
 
   //local
-  //dir.local("./");
-  //dir.add("graphics", "assets/graphics");
-  //dir.add("topo", "assets/tract_geo");
-  //dir.add("data", "assets/cbsa_data");
-  //dir.add("metdata", "assets/summary_data");
-  //dir.add("citytopo", "assets/city_geo");
+  dir.local("./");
+  dir.add("graphics", "assets/graphics");
+  dir.add("topo", "assets/tract_geo");
+  dir.add("data", "assets/cbsa_data");
+  dir.add("metdata", "assets/summary_data");
+  dir.add("citytopo", "assets/city_geo");
 
   //production data
-  dir.add("graphics", "broadband-distress/assets/graphics");
-  dir.add("topo", "broadband-distress/assets/tract_geo");
-  dir.add("data", "broadband-distress/assets/cbsa_data");
-  dir.add("metdata", "broadband-distress/assets/summary_data");
-  dir.add("citytopo", "broadband-distress/assets/city_geo");
+  //dir.add("graphics", "broadband-distress/assets/graphics");
+  //dir.add("topo", "broadband-distress/assets/tract_geo");
+  //dir.add("data", "broadband-distress/assets/cbsa_data");
+  //dir.add("metdata", "broadband-distress/assets/summary_data");
+  //dir.add("citytopo", "broadband-distress/assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||

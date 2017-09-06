@@ -130,6 +130,8 @@ export default function tract_maps(container){
 		var border_layer = map.layer().geo(border).attr("filter", "url(#feBlur)").attr("fill","#ffffff");
 		var tract_layer = map.layer().geo(geoj).attr("stroke","#ffffff").attr("stroke-width","0.5px");
 
+		var ttips = tract_layer.tooltips(function(d){return JSON.stringify(d)});
+
 		//var lake_layer = map.layer().geo(map.geo("lakes")).attr("fill","#ff0000");
 		tract_layer.data(tract_data, "tr");
 
