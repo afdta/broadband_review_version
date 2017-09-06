@@ -59,7 +59,7 @@ export default function access_bubble_map(container){
 		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
 
 		var radius = metro_layer.aes.r("numwo");
-			radius.radii(4, 40);	
+			radius.radii(0, 40);	
 
 		function draw_legend(){
 			map.legend.bubble(radius.ticks(), d3.format("-,.0f"), "Total pop. without access");
@@ -93,12 +93,12 @@ export default function access_bubble_map(container){
 
 			var redraw_legend = false
 			if(dims.width < 560){
-				radius.radii(2,20);
+				radius.radii(0,20);
 				if(!small_scale){draw_legend()}
 				small_scale = true;
 			}
 			else{
-				radius.radii(4,40);
+				radius.radii(0,40);
 				if(small_scale){draw_legend()}
 				small_scale = false;
 			}

@@ -593,6 +593,7 @@ function aesthetics(data){
 	};
 
 	//to do: implement
+	//per bostock: To avoid distortion, make sure that the minimum domain and range values are both zero! (for sqrt)
 	var aes_radius = function(variable){
 		var distribution = distro(variable);
 
@@ -1015,7 +1016,7 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 // 5) aesthetics on bound geos only or on all data uploaded
 
 //future features -- if duplicates are present in the code, provide a mechanism to "roll up" thes observations into summary data
-//
+//to do: enforce geo added only is featurecollection with feature.properties.geo_id available as unique geo id. ensures clean update of aesthetics on resize due to use of key function 
 
 //requirements: geo_id field in geo data must be called "geo_id"
 //              we only support FeatureCollection and array of points with lon, lat for fields
@@ -1028,6 +1029,10 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 
 //to do: check on calc of composite bbox
 //to do: currently the library assumes a FeatureCollection is a polygon: layer.geo only supports registering a polygon feature collection or an array of points
+
+//to do: refactor code for tooltips and legends. tooltips are sloppy when not applied to geo layers. also get more sophisticated about placement
+//legends need to be less ad-hoc and with better layout
+//to do: make default height of maps shorter to deal with fixed bar at top
 
 function layer(){
 
@@ -1470,9 +1475,6 @@ function layer(){
 		} 
 		return L;
 	};
-
-	//left off here on L.project()
-	//how to allow fit_to_viewport on other supplied projections? maybe a second arg to this function? this could be where users supply a projection?
 
 	//build a projection based on composite bbox in layer (composite because it is the smallest bbox that fits all sub geos within layer)
 	//assigns to private projection variable defined above
@@ -3102,7 +3104,7 @@ function access_bubble_map(container){
 		var filler = metro_layer.aes.fill("shwo").quantize(['#a50f15','#ef3b2c','#aaaaaa','#6baed6','#084594']).flip();
 
 		var radius = metro_layer.aes.r("numwo");
-			radius.radii(4, 40);	
+			radius.radii(0, 40);	
 
 		function draw_legend(){
 			map.legend.bubble(radius.ticks(), d3.format("-,.0f"), "Total pop. without access");
@@ -3136,12 +3138,12 @@ function access_bubble_map(container){
 
 			var redraw_legend = false;
 			if(dims.width < 560){
-				radius.radii(2,20);
+				radius.radii(0,20);
 				if(!small_scale){draw_legend();}
 				small_scale = true;
 			}
 			else{
-				radius.radii(4,40);
+				radius.radii(0,40);
 				if(small_scale){draw_legend();}
 				small_scale = false;
 			}
