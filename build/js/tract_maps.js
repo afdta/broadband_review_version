@@ -40,7 +40,7 @@ export default function tract_maps(container){
 							  .classed("no-select",true)
 							  ;
 	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
-						   
+
 
 	var geoCache = {}; //tract geo
 	var dataCache = {}; //tract data 
@@ -61,68 +61,84 @@ export default function tract_maps(container){
 
 			//get topo
 			d3.json(dir.url("topo", cbsa+".json"), function(error, topo){
-				if (error) throw error;
+				try{
+					if (error) throw error;
 
-				var geoj = topojson.feature(topo, topo.objects.tracts);
-				geoj.bbox = topojson.bbox(topo);
+					var geoj = topojson.feature(topo, topo.objects.tracts);
+					geoj.bbox = topojson.bbox(topo);
 
-				var border = topojson.mesh(topo, topo.objects.tracts, function(a,b){
-					return a===b;
-				});
+					var border = topojson.mesh(topo, topo.objects.tracts, function(a,b){
+						return a===b;
+					});
 
-				var border_fc = {
-					"type": "FeatureCollection",
-					"features": [
-						{
-							"type": "Feature",
-							"geometry": border,
-							"properties": {
-								"geo_id":"border"
-							}
-						}	
-					]
+					var border_fc = {
+						"type": "FeatureCollection",
+						"features": [
+							{
+								"type": "Feature",
+								"geometry": border,
+								"properties": {
+									"geo_id":"border"
+								}
+							}	
+						]
+					}
+
+					geoCache[cbsa] = geoj; //cache it
+					//topoCache[cbsa] = topo;
+					borderCache[cbsa] = border_fc;
+
+					topo_loaded = true;
+
+					if(data_loaded && city_loaded){
+						map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc, cbsa);
+					}
 				}
-
-				geoCache[cbsa] = geoj; //cache it
-				//topoCache[cbsa] = topo;
-				borderCache[cbsa] = border_fc;
-
-				topo_loaded = true;
-
-				if(data_loaded && city_loaded){
-					map_tract(dataCache[cbsa], geoj, cityCache[cbsa], border_fc, cbsa);
+				catch(e){
+					map.clear();
 				}		
 			});
 
 			//get data
 			d3.json(dir.url("data", cbsa+".json"), function(error, dat){
-				if (error) throw error;
+				try{
+					if (error) throw error;
 
-				dataCache[cbsa] = dat;
+					dataCache[cbsa] = dat;
 
-				data_loaded = true;
+					data_loaded = true;
 
-				if(topo_loaded && city_loaded){
-					map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa], cbsa);
+					if(topo_loaded && city_loaded){
+						map_tract(dat, geoCache[cbsa], cityCache[cbsa], borderCache[cbsa], cbsa);
+					}
+				}
+				catch(e){
+					map.clear();
 				}
 
 			});
 
 			//load up city topo file
 			d3.json(dir.url("citytopo", cbsa+".json"), function(error, data){
-				if (error) throw error;
-				
-				var citygeo = topojson.feature(data, data.objects.geos);
+				try{
+					if (error) throw error;
+					
+					var citygeo = topojson.feature(data, data.objects.geos);
 
-				cityCache[cbsa] = citygeo;
+					cityCache[cbsa] = citygeo;
 
-				city_loaded = true;
+					city_loaded = true;
 
-				if(topo_loaded && data_loaded){
-					map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa], cbsa);
+					if(topo_loaded && data_loaded){
+						map_tract(dataCache[cbsa], geoCache[cbsa], citygeo, borderCache[cbsa], cbsa);
+					}
+				}
+				catch(e){
+					map.clear();
 				}
 			});
 		}
+
 	}
 
 	//do the mapping after all data has been loaded
