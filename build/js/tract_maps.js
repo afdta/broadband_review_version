@@ -248,7 +248,13 @@ export default function tract_maps(container){
 			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba > 0.2977)}
 
 			var composite_filter = function(d){
-				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				try{
+					var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				}
+				catch(e){
+					var show = false;
+				}
+				
 				return show ? "1" : "0.05";
 			}
 

@@ -392,6 +392,9 @@ function aesthetics(data){
 	//the map method is called with the a record from data as its only argument as well as the corresponding geo object as this
 	//subsequent tweaking of parameters can be done by using scale-specific methods
 
+	//to do: split apart quantile, quantize, categorical and change the way you set scale on the front end.
+	//use a generic set_scale method for all attributes that creates the necessary methods (e.g. map) and missing value handlers
+
 	//quantitative colors
 	var aes_color = function(variable){
 		var di = distro(variable);
@@ -1884,7 +1887,7 @@ function legend(container){
 	var swatch_values = null;
 
 	//
-	L.bubble = function(values, formatter, title){
+	L.bubble = function(values, formatter, title, left){
 		bubble_values = values;
 
 		var padding = 8;
@@ -1892,7 +1895,7 @@ function legend(container){
 		var format = typeof formatter == "function" ? formatter : function(v){return v};
 
 		inner_wrap.selectAll("div.bubble-legend").remove();
-		var wrap = inner_wrap.append("div").classed("bubble-legend", true).style("float","right").style("margin","0em 1em 0em 2em");
+		var wrap = inner_wrap.append("div").classed("bubble-legend", true).style("float", arguments.length > 3 && !!left ? "left" : "right").style("margin","0em 1em 0em 2em");
 		var svg = wrap.append("svg");
 		var g = svg.append("g").attr("transform","translate(0,25)");
 
@@ -2961,7 +2964,13 @@ function tract_maps(container){
 			var ba_test = function(d){return !filter_selections.ba || (filter_selections.ba && d.ba > 0.2977)};
 
 			var composite_filter = function(d){
-				var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				try{
+					var show = av_test(d) && pov_test(d) && ki_test(d) && ba_test(d);
+				}
+				catch(e){
+					var show = false;
+				}
+				
 				return show ? "1" : "0.05";
 			};
 
@@ -3431,7 +3440,7 @@ function interventions(){
 
 	footnotes.collaborate = ['Marcia Pledger, "First High-Speed Broadband in Cleveland\'s Public Housing Celebrated Today," <em>Cleveland Plain Dealer</em>, May 11, 2017.'];
 
-	policy.localneeds = 'Develop campaigns tailored to local needs.{p}Governmental, nonprofit, and academic research consistently finds public outreach and training programs to be an important strategy to boost broadband adoption. Doing so effectively will require a layered approach, including digital curricula in primary schools, classes and free internet access at community institutions like libraries, and branded marketing campaigns to expand reach to target populations.{f} In some places, effective outreach may require equipment subsidies and discounts. Especially promising is a compelling case made by staff at the Federal Reserve Bank of Dallas: engaging financial institutions to support broadband investments in low- and moderate-income communities via the Community Reinvestment Act.{2} Marketing campaigns are especially important as it relates to attitudes around wireless broadband subscriptions relative to wireline. Many tech-savvy Pacific markets demonstrate lower wireline subscription rates when compared to broader subscription statistics from other sources, like those from the American Community Survey that simultaneously measure wireless and wireline. Tailored campaigns in markets like those may seek to understand why wireless rates may be higher and what other factors—such as ease of use, pricing, or even widespread availability of free WiFi—may impact wireless versus wireline subscription rates.';
+	policy.localneeds = 'Develop campaigns tailored to local needs.{p}Governmental, nonprofit, and academic research consistently finds public outreach and training programs to be an important strategy to boost broadband adoption. Doing so effectively will require a layered approach, including digital curricula in primary schools, classes and free internet access at community institutions like libraries, and branded marketing campaigns to expand reach to target populations.{f} In some places, effective outreach may require equipment subsidies and discounts. Especially promising is a compelling case made by staff at the Federal Reserve Bank of Dallas: engaging financial institutions to support broadband investments in low- and moderate-income communities via the Community Reinvestment Act.{f} Marketing campaigns are especially important as it relates to attitudes around wireless broadband subscriptions relative to wireline. Many tech-savvy Pacific markets demonstrate lower wireline subscription rates when compared to broader subscription statistics from other sources, like those from the American Community Survey that simultaneously measure wireless and wireline. Tailored campaigns in markets like those may seek to understand why wireless rates may be higher and what other factors—such as ease of use, pricing, or even widespread availability of free WiFi—may impact wireless versus wireline subscription rates.';
 
 	footnotes.localneeds = ['Jessica A. Lee and Adie Tomer, "Building and Advancing Digital Skills to Support Seattle\'s Economic Future" (Washington: Brookings Institution, 2015).',
 	'Jordana Barton, "Closing the Digital Divide: A Framework for Meeting CRA Obligations" (Federal Reserve Bank of Dallas, 2016).'
@@ -3439,7 +3448,7 @@ function interventions(){
 
 	policy.regionalism = 'Think locally, act regionally{p}Finally, how communities navigate jurisdictional boundaries will determine how effectively and efficiently they are able to close their availability and adoption gaps. Subpar broadband adoption in a handful of neighborhoods can limit an entire region\'s ability to grow its economy or switch to digital government platforms. As such, digital skills campaigns cannot just be core city programming—they should have extensive regional reach.  NTIA\'s Adoption Toolkit touches on many of these approaches and includes applied examples from across the country.{f}';
 
-	footnotes.regionalism = ['National Telecommunications and Information Administration (NTIA), "NTIA Broadband Adoption Toolkit,"" 2013.'];
+	footnotes.regionalism = ['National Telecommunications and Information Administration (NTIA), "NTIA Broadband Adoption Toolkit," 2013.'];
 
 	//parse
 	var policy2 = {};

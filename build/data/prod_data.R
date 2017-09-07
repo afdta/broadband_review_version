@@ -13,7 +13,7 @@ data$above1g <- substring(data$above1g,1,1)
 data$pov <- data$inpov/data$povuniv
 data$ba <- data$baplus_1115/data$edattain_univ_1115
 data$ki <- data$u18_1115/data$pop_1115
-data$access <- ifelse(data$atl25=="N", 0, data$pop_1115)
+data$access <- ifelse(data$atl25=="N", 0, 1)
 
 DTA <- data[c("cbsa","tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","ki")]
 names(DTA) <- c("cbsa","tr","pl","av","su","pop","ba","pov","ki")
@@ -36,23 +36,6 @@ t100 <- metropops()$CBSA_Code
 for(t in t100){
   export_cbsa(t)
 }
-
-data100 <- limit100(data, "cbsa")
-
-
-#write out subset
-writeLines(toJSON(data100, factor="string", na="null", digits=5), 
-           con="/home/alec/Projects/Brookings/broadband/data/tract_data.json")
-
-sum(data$u18_1115)/sum(data$pop_1115)
-sum( data$baplus_1115 )/ sum(data$edattain_univ_1115)
-
-#write out Akron
-akronchi <- data[data$cbsa %in% c("10420","16980"), c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
-names(akronchi) <- c("tr","pl","av","su","pop","ba","pov","ki")
-writeLines(toJSON(akronchi, factor="string", na="null", digits=5), 
-           con="/home/alec/Projects/Brookings/broadband/data/akron_chicago.json")
-
 
 
 #pull in metro level data
@@ -84,6 +67,23 @@ writeLines(text = adoption_json, con = "/home/alec/Projects/Brookings/broadband/
 
 
 #scrap ...
+
+
+data100 <- limit100(data, "cbsa")
+
+
+#write out subset
+writeLines(toJSON(data100, factor="string", na="null", digits=5), 
+           con="/home/alec/Projects/Brookings/broadband/data/tract_data.json")
+
+sum(data$u18_1115)/sum(data$pop_1115)
+sum( data$baplus_1115 )/ sum(data$edattain_univ_1115)
+
+#write out Akron
+akronchi <- data[data$cbsa %in% c("10420","16980"), c("tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","u18_1115")]
+names(akronchi) <- c("tr","pl","av","su","pop","ba","pov","ki")
+writeLines(toJSON(akronchi, factor="string", na="null", digits=5), 
+           con="/home/alec/Projects/Brookings/broadband/data/akron_chicago.json")
 
 #share of pop by adoption tier
 share <- function(pop){return(pop/sum(pop))}
