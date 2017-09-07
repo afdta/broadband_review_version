@@ -2855,7 +2855,13 @@ function tract_maps(container){
 			var poverty = "<b>Poverty rate</b>: " + (d.pov==null ? "N/A" : format.sh1(d.pov));
 			var ba = "<b>BA attainment rate</b>: " + (d.ba==null ? "N/A" : format.sh1(d.ba));
 			var kids = "<b>Under 18 share of pop.</b>: " + (d.ki==null ? "N/A" : format.sh1(d.ki));
-			return "<p>" + pop + "<br/>" + availability + "<br />" + poverty + "<br />" + ba + "<br />" + kids + "<br />Census tract ID: " + d.tr + "</p>";
+			return '<p style="margin:0.5em 0em">' + pop + 
+				   '<br/>' + availability + 
+				   '<br />' + poverty + 
+				   '<br />' + ba + 
+				   '<br />' + kids + 
+				   '<br /><span style="color:#555555">Census tract ID: ' + d.tr + '</span>' +
+				   '</p>';
 		});
 
 		tract_layer.data(tract_data, "tr");
@@ -2970,7 +2976,7 @@ function tract_maps(container){
 				catch(e){
 					var show = false;
 				}
-				
+
 				return show ? "1" : "0.05";
 			};
 
@@ -3803,19 +3809,19 @@ function main(){
 
 
   //local
-  dir.local("./");
-  dir.add("graphics", "assets/graphics");
-  dir.add("topo", "assets/tract_geo");
-  dir.add("data", "assets/cbsa_data");
-  dir.add("metdata", "assets/summary_data");
-  dir.add("citytopo", "assets/city_geo");
+  //dir.local("./");
+  //dir.add("graphics", "assets/graphics");
+  //dir.add("topo", "assets/tract_geo");
+  //dir.add("data", "assets/cbsa_data");
+  //dir.add("metdata", "assets/summary_data");
+  //dir.add("citytopo", "assets/city_geo");
 
   //production data
-  //dir.add("graphics", "broadband-distress/assets/graphics");
-  //dir.add("topo", "broadband-distress/assets/tract_geo");
-  //dir.add("data", "broadband-distress/assets/cbsa_data");
-  //dir.add("metdata", "broadband-distress/assets/summary_data");
-  //dir.add("citytopo", "broadband-distress/assets/city_geo");
+  dir.add("graphics", "broadband-distress/assets/graphics");
+  dir.add("topo", "broadband-distress/assets/tract_geo");
+  dir.add("data", "broadband-distress/assets/cbsa_data");
+  dir.add("metdata", "broadband-distress/assets/summary_data");
+  dir.add("citytopo", "broadband-distress/assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||

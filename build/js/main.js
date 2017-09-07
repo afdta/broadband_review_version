@@ -10,19 +10,19 @@ function main(){
 
 
   //local
-  dir.local("./");
-  dir.add("graphics", "assets/graphics");
-  dir.add("topo", "assets/tract_geo");
-  dir.add("data", "assets/cbsa_data");
-  dir.add("metdata", "assets/summary_data");
-  dir.add("citytopo", "assets/city_geo");
+  //dir.local("./");
+  //dir.add("graphics", "assets/graphics");
+  //dir.add("topo", "assets/tract_geo");
+  //dir.add("data", "assets/cbsa_data");
+  //dir.add("metdata", "assets/summary_data");
+  //dir.add("citytopo", "assets/city_geo");
 
   //production data
-  //dir.add("graphics", "broadband-distress/assets/graphics");
-  //dir.add("topo", "broadband-distress/assets/tract_geo");
-  //dir.add("data", "broadband-distress/assets/cbsa_data");
-  //dir.add("metdata", "broadband-distress/assets/summary_data");
-  //dir.add("citytopo", "broadband-distress/assets/city_geo");
+  dir.add("graphics", "broadband-distress/assets/graphics");
+  dir.add("topo", "broadband-distress/assets/tract_geo");
+  dir.add("data", "broadband-distress/assets/cbsa_data");
+  dir.add("metdata", "broadband-distress/assets/summary_data");
+  dir.add("citytopo", "broadband-distress/assets/city_geo");
 
   //browser degradation
   if(!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1") ||

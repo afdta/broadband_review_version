@@ -137,7 +137,13 @@ export default function tract_maps(container){
 			var poverty = "<b>Poverty rate</b>: " + (d.pov==null ? "N/A" : format.sh1(d.pov));
 			var ba = "<b>BA attainment rate</b>: " + (d.ba==null ? "N/A" : format.sh1(d.ba));
 			var kids = "<b>Under 18 share of pop.</b>: " + (d.ki==null ? "N/A" : format.sh1(d.ki));
-			return "<p>" + pop + "<br/>" + availability + "<br />" + poverty + "<br />" + ba + "<br />" + kids + "<br />Census tract ID: " + d.tr + "</p>";
+			return '<p style="margin:0.5em 0em">' + pop + 
+				   '<br/>' + availability + 
+				   '<br />' + poverty + 
+				   '<br />' + ba + 
+				   '<br />' + kids + 
+				   '<br /><span style="color:#555555">Census tract ID: ' + d.tr + '</span>' +
+				   '</p>';
 		});
 
 		tract_layer.data(tract_data, "tr");
@@ -254,7 +260,7 @@ export default function tract_maps(container){
 				catch(e){
 					var show = false;
 				}
-				
+
 				return show ? "1" : "0.05";
 			}
 
