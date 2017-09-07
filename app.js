@@ -2735,6 +2735,31 @@ function tract_maps(container){
 					   .style("background-color","transparent")
 					   .append("div");
 
+
+	//create map object and menu areas
+	var map = mapd(map_wrap.node());
+
+	var menu_wrap = map.menu().style("margin-bottom","1em");
+	
+
+	var menu_inner = menu_wrap.append("div").style("max-width","1200px")
+							  .style("border-bottom", "1px dotted #999999")
+							  .style("margin","0px auto 0em auto")
+							  .style("padding","0em 2em 1em 2em");
+
+	var select = menu_inner.append("div");
+
+		menu_inner.append("p").text("SHOW NEIGHBORHOODS WITH:")
+							  .style("margin","1.5em 0em 0em 0em")
+							  .style("font-size","0.85em")
+							  .style("color", "#555555")
+							  .style("padding", "0px 0px 6px 6px")
+							  .style("line-height","1em")
+							  .classed("no-select",true)
+							  ;
+	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
+						   
+
 	var geoCache = {}; //tract geo
 	var dataCache = {}; //tract data 
 	var cityCache = {}; //primary city geo
@@ -2817,30 +2842,6 @@ function tract_maps(container){
 			});
 		}
 	}
-
-	//create map object and menu areas
-	var map = mapd(map_wrap.node());
-
-	var menu_wrap = map.menu().style("margin-bottom","1em");
-	
-
-	var menu_inner = menu_wrap.append("div").style("max-width","1200px")
-							  .style("border-bottom", "1px dotted #999999")
-							  .style("margin","0px auto 0em auto")
-							  .style("padding","0em 2em 1em 2em");
-
-	var select = menu_inner.append("div");
-
-		menu_inner.append("p").text("SHOW NEIGHBORHOODS WITH:")
-							  .style("margin","1.5em 0em 0em 0em")
-							  .style("font-size","0.85em")
-							  .style("color", "#555555")
-							  .style("padding", "0px 0px 6px 6px")
-							  .style("line-height","1em")
-							  .classed("no-select",true)
-							  ;
-	var filter_wrap = menu_inner.append("div").classed("c-fix",true).style("padding","0px 0px 0em 0px").classed("buttons",true);
-
 
 	//do the mapping after all data has been loaded
 	function map_tract(tract_data, geoj, citygeo, border, cbsa){
