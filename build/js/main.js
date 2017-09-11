@@ -118,7 +118,7 @@ function main(){
     pricing_graphic.append("img").attr("src", dir.url("graphics","price_by_country.svg")); 
 
     var correlation_graphic = d3.select("#correlations-chart");
-    correlation_graphic.append("p").html('<b>Chart under revision. Neighborhood broadband subscription rates are correlated with income and educational attainment<span style="white-space:nowrap"></span></b>').style("font-size","1.15em").style("margin-bottom","15px");
+    //correlation_graphic.append("p").html('<b></b>').style("font-size","1.15em").style("margin-bottom","15px");
     correlation_graphic.append("img").attr("src", dir.url("graphics","correlations.svg")); 
   }
 
