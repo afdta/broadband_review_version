@@ -43,7 +43,7 @@ draw <- function(cbsa_code, filter="all"){
   fort2$subscription <- factor(fort2$su, levels=0:5, labels=c("0","0-20","20-40","40-60","60-80","80-100"))
 
   gg <- ggplot(fort2) + geom_polygon(aes(x=long, y=lat, group=id, fill=subscription), color="#ffffff", size=0.2) + 
-         scale_fill_manual(values=colors, limits=c("0","0-20","20-40","40-60","60-80","80-100")) + theme_bw()
+         scale_fill_manual(values=colors, limits=c("0","0-20","20-40","40-60","60-80","80-100")) + theme_bw() + coord_fixed()
   
   plot(gg)
   

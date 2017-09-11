@@ -3,42 +3,34 @@
 options(scipen=10000)
 library(tidyverse)
 library(metromonitor)
-library(jsonlite)
-library(readxl)
 
 data <- read_csv("/home/alec/Projects/Brookings/broadband/build/data/Masterfile.txt")
-data$atl3 <- substring(data$atl3,1,1)
-data$atl10 <- substring(data$atl10,1,1)
-data$atl25 <- substring(data$atl25,1,1)
-data$above1g <- substring(data$above1g,1,1)
-data$pov <- data$inpov/data$povuniv
 data$ba <- data$baplus_1115/data$edattain_univ_1115
-data$ki <- data$u18_1115/data$pop_1115
-data$access <- ifelse(data$atl25=="N", 0, data$pop_1115)
+data$hs <- (data$hs_1115 + data$lesshs_1115)/data$edattain_univ_1115
 
-DTA <- data[, c("cbsa","tract","stplfips","atl25","pcat_10x1","pop_1115","ba","pov","ki","inc_cat","hh_medinc_1115")]
-names(DTA) <- c("cbsa","tr","pl","av","su","pop","ba","pov","ki","inc","medinc")
+DTA <- data[, c("cbsa","tract","pcat_10x1","pop_1115","ba","hs","hh_medinc_1115")]
 
-DTA$sub <- factor(ifelse(DTA$su==0, 1, DTA$su), labels=c("0–20%","20–40%","40–60%","60–80%","80–100%"))
-#DTA$inc_cat <- factor(DTA$inc, labels=c("low", "middle","high"))
-#DTA$inc_cat <- cut(DTA$medinc, 25, na.rm=TRUE)
-DTA$inc_cat <- cut(DTA$medinc, quantile(DTA$medinc, seq(0,1,0.2), na.rm=TRUE), dig.lab=10)
+DTA$sub <- factor(ifelse(DTA$pcat_10x1==0, 1, DTA$pcat_10x1), levels=1:5, labels=c("0–20%","20–40%","40–60%","60–80%","80–100%"))
+DTA$inc_cat <- cut(DTA$hh_medinc_1115, quantile(DTA$hh_medinc_1115, seq(0,1,0.2), na.rm=TRUE), include.lowest=TRUE, dig.lab=10)
+DTA$hs_cat <- cut(DTA$hs, quantile(DTA$hs, seq(0,1,0.2), na.rm=TRUE), include.lowest=TRUE)
 
 group_by(DTA, inc_cat) %>% summarise(n = n())
+group_by(DTA, hs_cat) %>% summarise(n = n())
+
+group_share <- function(g){
+  g$share <- g$inc_by_sub/sum(g$inc_by_sub)
+  return(g)
+}
 
 #maxcut <- max((DTA %>% group_by(inc_cat) %>% summarise(people = sum(pop)))$people)
-sum_by_inc <- DTA %>% group_by(inc_cat, sub) %>% summarise(people = sum(pop)) %>% do((function(g){
-  g$share <- g$people/sum(g$people)
-  #g$width <- sum(g$people) / maxcut
-  return(g)
-})(.))
+sum_by_inc <- DTA %>% group_by(inc_cat, sub) %>% summarise(inc_by_sub=sum(pop_1115, na.rm=TRUE)) %>% 
+                      group_by(inc_cat) %>% mutate(share=inc_by_sub/sum(inc_by_sub, na.rm=TRUE))
 
-ggplot(sum_by_inc) + geom_col(aes(x=inc_cat, y=people, fill=sub), na.rm=TRUE, position="stack") + coord_flip()
+sum_by_inc2 <- DTA %>% group_by(inc_cat, sub) %>% summarise(inc_by_sub = sum(pop_1115)) %>% do(group_share(.))
+identical(sum_by_inc, sum_by_inc2) #TRUE
 
-mosaicplot(table(sum_by_inc$inc_cat, sum_by_inc$sub), shade=TRUE)
+ggplot(sum_by_inc) + geom_col(aes(x=inc_cat, y=inc_by_sub, fill=sub), na.rm=TRUE, position="stack")
 
-DTA$ba_cat <- cut(DTA$ba, quantile(DTA$ba, seq(0,1,0.1), na.rm=TRUE))
-#DTA$ba_cat <- cut(DTA$ba, 10, na.rm=TRUE)
 
 sum_by_ba <- DTA %>% group_by(ba_cat, sub) %>% summarise(people = sum(pop)) %>% do((function(g){
   g$share <- g$people/sum(g$people)

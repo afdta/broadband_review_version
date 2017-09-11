@@ -295,28 +295,31 @@ export default function interventions(){
 				uen.style("position","absolute")
 					  .style("bottom","2em")
 					  .style("right","3em")
-					  .style("width","60px")
+					  .style("width","50px")
 					  .style("height","50px")
-					  .style("padding","10px")
-					  .style("border","1px solid #0d73d6")
+					  .style("padding","0px")
+					  .style("border","0px solid #0d73d6")
 					  .style("background-color","rgba(255,255,255,0.8)")
-					  .style("border-radius","5px")
+					  .style("border-radius","25px")
 					  ;
 
-				var zoom_svg = uen.select("svg").attr("width","40px")
-									    .attr("height","30px")
-										.attr("viewBox","0 0 40 30");
+				var zoom_svg = uen.select("svg").attr("width","50px")
+									    .attr("height","50px")
+										.attr("viewBox","0 0 50 50");
 
-				var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1050)")
-												.attr("stroke","#0d73d6")
+				var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1030)")
 												.attr("stroke-linecap","round")
-												.attr("fill","none")
 												;	
 
-				zoom_in_g.append("path").attr("stroke-width","4")
-							.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
-				zoom_in_g.append("path").attr("stroke-width","2")
-							.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+				//zoom_in_g.append("path").attr("stroke-width","4")
+				//			.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
+				//zoom_in_g.append("path").attr("stroke-width","2")
+				//			.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+
+				zoom_in_g.append("path").attr("d","m42.5 1055a17.5 17.5 0 0 1 -17.5 17.5 17.5 17.5 0 0 1 -17.5 -17.5 17.5 17.5 0 0 1 17.5 -17.5 17.5 17.5 0 0 1 17.5 17.5z").attr("fill","#0d73d6");
+				zoom_in_g.append("path").attr("d","m19 1054.5 6.1902 6 5.8098-6")
+										.attr("stroke","#ffffff").attr("stroke-linecap","square").attr("fill","none").attr("stroke-width","5")
+										.attr("stroke-linejoin","round");
 
 
 		}

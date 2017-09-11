@@ -3685,27 +3685,30 @@ function interventions(){
 				uen.style("position","absolute")
 					  .style("bottom","2em")
 					  .style("right","3em")
-					  .style("width","60px")
+					  .style("width","50px")
 					  .style("height","50px")
-					  .style("padding","10px")
-					  .style("border","1px solid #0d73d6")
+					  .style("padding","0px")
+					  .style("border","0px solid #0d73d6")
 					  .style("background-color","rgba(255,255,255,0.8)")
-					  .style("border-radius","5px")
+					  .style("border-radius","25px")
 					  ;
 
-				var zoom_svg = uen.select("svg").attr("width","40px")
-									    .attr("height","30px")
-										.attr("viewBox","0 0 40 30");
+				var zoom_svg = uen.select("svg").attr("width","50px")
+									    .attr("height","50px")
+										.attr("viewBox","0 0 50 50");
 
-				var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1050)")
-												.attr("stroke","#0d73d6")
-												.attr("stroke-linecap","round")
-												.attr("fill","none");	
+				var zoom_in_g = zoom_svg.append("g").attr("transform","translate(0,-1030)")
+												.attr("stroke-linecap","round");	
 
-				zoom_in_g.append("path").attr("stroke-width","4")
-							.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
-				zoom_in_g.append("path").attr("stroke-width","2")
-							.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+				//zoom_in_g.append("path").attr("stroke-width","4")
+				//			.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
+				//zoom_in_g.append("path").attr("stroke-width","2")
+				//			.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
+
+				zoom_in_g.append("path").attr("d","m42.5 1055a17.5 17.5 0 0 1 -17.5 17.5 17.5 17.5 0 0 1 -17.5 -17.5 17.5 17.5 0 0 1 17.5 -17.5 17.5 17.5 0 0 1 17.5 17.5z").attr("fill","#0d73d6");
+				zoom_in_g.append("path").attr("d","m19 1054.5 6.1902 6 5.8098-6")
+										.attr("stroke","#ffffff").attr("stroke-linecap","square").attr("fill","none").attr("stroke-width","5")
+										.attr("stroke-linejoin","round");
 
 
 		};
@@ -3881,21 +3884,34 @@ function main(){
     inter.grid(inter_local.node(), true);
 
     //add in images
-    var chicago = d3.select("#tract-map-example").style("position","relative").append("a").attr("href","#tract-map").classed("jump-link",true);
-    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"));
+    var chicago = d3.select("#tract-map-example").style("position","relative")
+                                                 .append("a")
+                                                 .attr("href","#tract-map")
+                                                 .classed("jump-link",true);
+
     chicago.append("div").style("position","relative")
                          .classed("makesans",true)
-                         .style("padding","0em 0em 0em 0em")
-                         .style("border-top","1px dotted #0d73d6")
-                         .style("top","-150px")
-                         .append("div")
-                         .style("padding","1em 0em 1em 1em")
-                         .style("background-color","rgba(255,255,255,0.8)")
+                         .style("padding","0em 1em 0.5em 1em")
+                         .style("border-bottom","1px dotted #aaaaaa")
+                         .style("top","0em")
+                         .style("z-index","1")
+                         .style("background-color","rgba(255,255,255,0.9)")
                          .append("p")
-                         .style("margin","0em")
-                         .html('Census tracts in the Chicago metropolitan area, shaded by broadband subscription rates; <b class="red-text">red</b> indicates low rates of broadband subscription while <b class="blue-text">blue</b> indicates high subscription neighborhoods. Detailed interactive maps are available below.');
+                         .style("margin","0em 0em 0.25em 0em")
+                         .style("font-style","italic")
+                         .html('Census tracts in the Chicago metropolitan area, shaded by broadband subscription rates; <b class="red-text">red</b> indicates low rates of broadband subscription while <b class="blue-text">blue</b> indicates high subscription neighborhoods. <b>View a map of broadband subscription rates <span class="hand-icon" style="white-space:nowrap">in your metropolitan area. </span></b>');
 
-    chicago.append("p").html('<span class="hand-icon"></span> <span style="white-space:nowrap">Jump to maps</span>').style("position","absolute")
+
+    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"))
+                         .style("max-width","500px")
+                         .style("margin","-3em auto 0px auto")
+                         .style("display","block")
+                         .style("position","relative")
+                         .style("z-index","0")
+                         ;
+
+
+    chicago.append("p").html('').style("position","absolute")
                         .style("top","20%").style("left","64%");
 
 

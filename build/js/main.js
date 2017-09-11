@@ -65,21 +65,35 @@ function main(){
     inter.grid(inter_local.node(), true);
 
     //add in images
-    var chicago = d3.select("#tract-map-example").style("position","relative").append("a").attr("href","#tract-map").classed("jump-link",true);
-    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"));
+    var chicago = d3.select("#tract-map-example").style("position","relative")
+                                                 .append("a")
+                                                 .attr("href","#tract-map")
+                                                 .classed("jump-link",true)
+                                                 ;
+
     chicago.append("div").style("position","relative")
                          .classed("makesans",true)
-                         .style("padding","0em 0em 0em 0em")
-                         .style("border-top","1px dotted #0d73d6")
-                         .style("top","-150px")
-                         .append("div")
-                         .style("padding","1em 0em 1em 1em")
-                         .style("background-color","rgba(255,255,255,0.8)")
+                         .style("padding","0em 1em 0.5em 1em")
+                         .style("border-bottom","1px dotted #aaaaaa")
+                         .style("top","0em")
+                         .style("z-index","1")
+                         .style("background-color","rgba(255,255,255,0.9)")
                          .append("p")
-                         .style("margin","0em")
-                         .html('Census tracts in the Chicago metropolitan area, shaded by broadband subscription rates; <b class="red-text">red</b> indicates low rates of broadband subscription while <b class="blue-text">blue</b> indicates high subscription neighborhoods. Detailed interactive maps are available below.');
+                         .style("margin","0em 0em 0.25em 0em")
+                         .style("font-style","italic")
+                         .html('Census tracts in the Chicago metropolitan area, shaded by broadband subscription rates; <b class="red-text">red</b> indicates low rates of broadband subscription while <b class="blue-text">blue</b> indicates high subscription neighborhoods. <b>View a map of broadband subscription rates <span class="hand-icon" style="white-space:nowrap">in your metropolitan area. </span></b>');
 
-    chicago.append("p").html('<span class="hand-icon"></span> <span style="white-space:nowrap">Jump to maps</span>').style("position","absolute")
+
+    chicago.append("img").attr("src", dir.url("graphics", "Chicago.png"))
+                         .style("max-width","500px")
+                         .style("margin","-3em auto 0px auto")
+                         .style("display","block")
+                         .style("position","relative")
+                         .style("z-index","0")
+                         ;
+
+
+    chicago.append("p").html('').style("position","absolute")
                         .style("top","20%").style("left","64%")
 
 
